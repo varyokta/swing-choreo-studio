@@ -324,7 +324,9 @@
           <input type="file" id="ses-dosya" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac" hidden data-ch="ses-dosya">
           ${mik ? '' : '<button class="btn" data-act="mikrofon">Mikrofonla dinle</button>'}
         </div>
-        ${mik ? `<div class="yigin" style="gap:8px"><p><b>Dinleniyor</b> · <span id="mik-sure" class="mono">0:00</span>. Şarkıyı hoparlörden baştan sona çal (kulaklıkla mikrofon duymaz).</p>
+        ${!mik && SPOTIFY_VAR && s.spotifyId ? '<p class="not bilgi">Deneysel (iPhone): "Mikrofonla dinle"ye bastıktan sonra alttaki Spotify oynatıcısında Çal\'a bas. Spotify çalmaya devam ederse kayıt Spotify zamanıyla eşlenir ve prova sayacı ayarsız oturur. Yine susarsa iPhone buna izin vermiyor demektir: şarkıyı başka bir cihazdan hoparlörle çal.</p>' : ''}
+        ${mik ? `<div class="yigin" style="gap:8px"><p><b>Dinleniyor</b> · <span id="mik-sure" class="mono">0:00</span>. Şarkıyı hoparlörden baştan sona çal (kulaklıkla mikrofon duymaz). Kayıt sırasında sarma ya da durdurma.</p>
+          <p class="kucuk" id="mik-spotify"></p>
           <div class="seviye-cubuk"><i id="mik-seviye"></i></div>
           <div class="satir"><button class="btn ana" data-act="mik-bitir">Bitir ve analiz et</button><button class="btn" data-act="mik-vazgec">Vazgeç</button></div></div>` : ''}
         ${ui.mikHata ? `<p class="not uyari">${esc(ui.mikHata)}</p>` : ''}
@@ -829,13 +831,18 @@
   }
 
   // ---------------- analiz ----------------
-  async function sesiAnalizEt(s, mono, sr, kaynak, sesAdi) {
+  async function sesiAnalizEt(s, mono, sr, kaynak, sesAdi, secenek) {
     ui.analiz = { songId: s.id, durum: 'Analiz ediliyor…', oran: 0.05 };
     analizCiz();
+    secenek = secenek || {};
     try {
       const r = await S.analizEt(mono, sr, (v) => { if (ui.analiz) { ui.analiz.oran = v; analizCiz(); } });
-      s.beats = r.beats; s.originIdx = r.originIdx; s.firstOneSec = r.beats[r.originIdx];
-      s.durationSec = Math.round(r.sureSn * 10) / 10;
+      const fark = secenek.spotifyFarki;
+      // Spotify zamanıyla eşleşmişse vuruşlar şarkının Spotify'daki zamanına kaydırılır
+      s.beats = fark != null ? r.beats.map((b) => Math.round((b + fark) * 1000) / 1000) : r.beats;
+      s.originIdx = r.originIdx; s.firstOneSec = s.beats[r.originIdx];
+      if (fark != null) s.spotifyKayma = 0;
+      s.durationSec = fark != null && SP.dur > 31 ? Math.round(SP.dur * 10) / 10 : Math.round(r.sureSn * 10) / 10;
       s.analiz = { kaynak, tarih: Date.now(), bpm: r.bpm, bpmBas: r.bpmBas, bpmSon: r.bpmSon, adaylar: r.adaylar, guven: r.guven, vDb: r.vDb, vOn: r.vOn, ozel: r.ozel, sesAdi: sesAdi || '' };
       kaynakEkle(s, kaynak, r.bpm, sesAdi || '');
       const eskiBpm = s.bpm;
@@ -844,6 +851,8 @@
       if (!s.haritaElle) { s.energy = r.energy; s.breaks = r.breaks; s.accents = r.accents; s.sections = r.sections; ek = ' Harita önerileri uygulandı.'; }
       else ek = ' Elle işaretlerin korundu; istersen analiz önerilerini uygulayabilirsin.';
       if (eskiBpm && Math.abs(eskiBpm - r.bpm) / r.bpm > 0.03) ek += ` Önceki seçilen tempo ${sayi(eskiBpm)} idi; gerekirse yarım/çift tempoyu seç.`;
+      if (fark != null) ek += ' Vuruşlar şarkının Spotify zamanına oturtuldu: Prova sekmesinde sayım ayarsız eşleşir.';
+      else if (secenek.spotifyVardi) ek += ' Kayıt sırasında Spotify sarıldı ya da durdu; Spotify zamanıyla eşleme yapılamadı (Prova\'daki "Şu an 1" düğmesiyle eşleyebilirsin).';
       s.updatedAt = Date.now();
       kaydet();
       ui.analiz = { songId: s.id, bitti: `Bitti: ${sayi(r.bpm)} BPM, ${r.beats.length} vuruş bulundu.${ek}` };
@@ -880,28 +889,34 @@
       ? 'Mikrofon açılamadı. claude.ai sayfaları mikrofona erişemez: ses dosyası yükle, dokunarak ölç ya da uygulamanın kendi adresindeki sürümünü kullan.'
       : 'Mikrofon açılamadı. Mikrofon iznini kontrol et (iPhone: Ayarlar → Safari → Mikrofon, ya da adres çubuğundaki "aA" → Web Sitesi Ayarları).';
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { ui.mikHata = hataMetni; ciz(); return; }
+    // DENEYSEL (iPhone, Safari 16.4+): ses oturumunu "çal ve kaydet" yap; mikrofon açılınca
+    // çalan müziğin (sayfadaki Spotify oynatıcısının) kesilmemesi istenir. Desteklenmezse bir şey olmaz.
+    let oturumEski = null;
+    try { if (navigator.audioSession) { oturumEski = navigator.audioSession.type; navigator.audioSession.type = 'play-and-record'; } } catch (e) { /* desteklenmiyor */ }
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
-    catch (e) { ui.mikHata = hataMetni; ciz(); return; }
+    catch (e) { oturumGeriAl(oturumEski); ui.mikHata = hataMetni; ciz(); return; }
     const ac = new (window.AudioContext || window.webkitAudioContext)();
     const src = ac.createMediaStreamSource(stream);
     const f = Math.max(1, Math.round(ac.sampleRate / 11025));
     const proc = ac.createScriptProcessor(4096, 1, 1);
     const parcalar = [];
     let seviye = 0;
+    const M = { songId: s.id, stream, ac, src, proc, parcalar, sr: ac.sampleRate / f, bas: Date.now(), seviye: () => seviye, oturumEski, toplam: 0, sonParca: performance.now(), spotifyCiftleri: [] };
     proc.onaudioprocess = (e) => {
       const d = e.inputBuffer.getChannelData(0);
       const out = new Float32Array(Math.floor(d.length / f));
       let m = 0;
       for (let i = 0; i < out.length; i++) { let t = 0; for (let k = 0; k < f; k++) t += d[i * f + k]; out[i] = t / f; m = Math.max(m, Math.abs(out[i])); }
       parcalar.push(out); seviye = m;
+      M.toplam += out.length; M.sonParca = performance.now();
     };
     src.connect(proc); proc.connect(ac.destination);
-    const M = { songId: s.id, stream, ac, src, proc, parcalar, sr: ac.sampleRate / f, bas: Date.now(), seviye: () => seviye };
     M.zaman = setInterval(() => {
-      const a = $('#mik-sure'), b = $('#mik-seviye');
+      const a = $('#mik-sure'), b = $('#mik-seviye'), c = $('#mik-spotify');
       if (a) a.textContent = sureMetni((Date.now() - M.bas) / 1000);
       if (b) b.style.width = Math.min(100, Math.round(M.seviye() * 140)) + '%';
+      if (c) c.textContent = M.spotifyCiftleri.length ? 'Spotify zamanı kaydediliyor: vuruşlar şarkının Spotify zamanına oturtulacak.' : (SPOTIFY_VAR && sarki(M.songId) && sarki(M.songId).spotifyId ? 'Alttaki Spotify oynatıcısında Çal\'a bas (deneysel).' : '');
     }, 200);
     ui.mikrofon = M;
     ciz();
@@ -913,8 +928,21 @@
     try { M.proc.disconnect(); M.src.disconnect(); } catch (e) { /* yok */ }
     M.stream.getTracks().forEach((t) => t.stop());
     try { M.ac.close(); } catch (e) { /* yok */ }
+    oturumGeriAl(M.oturumEski);
     ui.mikrofon = null;
     return M;
+  }
+  function oturumGeriAl(eski) {
+    try { if (navigator.audioSession) navigator.audioSession.type = eski || 'auto'; } catch (e) { /* yok */ }
+  }
+  // Kayıt sırasında toplanan (kayıt zamanı, Spotify zamanı) çiftlerinden aradaki sabit fark.
+  // Kayıt sırasında sarılmış ya da durdurulmuşsa çiftler tutarsız olur: o zaman eşleme yapılmaz.
+  function spotifyFarki(ciftler) {
+    if (!ciftler || ciftler.length < 3) return null;
+    const farklar = ciftler.map((c) => c.spotify - c.kayit).sort((a, b) => a - b);
+    const md = farklar[farklar.length >> 1];
+    const tutarli = farklar.filter((x) => Math.abs(x - md) < 0.3).length;
+    return tutarli >= farklar.length * 0.6 ? md : null;
   }
 
   // ---------------- prova sayacı ----------------
@@ -1085,6 +1113,12 @@
     SP.t = performance.now();
     const s = SP.songId && sarki(SP.songId);
     if (!s) return;
+    // mikrofonla dinlerken: o anki kayıt zamanı ile Spotify zamanını eşle (sonradan vuruşlar Spotify'a oturtulur)
+    const M = ui.mikrofon;
+    if (M && M.songId === s.id && !SP.durdu) {
+      const kayit = M.toplam / M.sr + (performance.now() - M.sonParca) / 1000;
+      M.spotifyCiftleri.push({ kayit, spotify: SP.pos });
+    }
     const onizleme = SP.dur > 0 && SP.dur <= 31;
     if (onizleme) spotifyNot('Spotify sadece 30 saniyelik önizleme çalıyor: bu tarayıcıda Spotify hesabına giriş yapılmamış görünüyor. Safari\'de open.spotify.com\'a giriş yapıp sayfayı yeniden aç.');
     else if (SP.dur > 31) spotifyNot('Sayım bu oynatıcının çaldığı ana kilitli (Prova sekmesi).');
@@ -1128,7 +1162,8 @@
       const mono = new Float32Array(n); let o = 0;
       for (const p of M.parcalar) { mono.set(p, o); o += p.length; }
       ciz();
-      sesiAnalizEt(s, mono, M.sr, 'mikrofon', 'mikrofon kaydı');
+      const fark = spotifyFarki(M.spotifyCiftleri);
+      sesiAnalizEt(s, mono, M.sr, 'mikrofon', fark != null ? 'mikrofon + Spotify zamanı' : 'mikrofon kaydı', { spotifyFarki: fark, spotifyVardi: M.spotifyCiftleri.length > 0 });
     },
     'analiz-uygula': () => { const s = aktifSarki(); haritayiAnalizdenKur(s); s.haritaElle = false; kaydet(); ciz(); toast('Analiz önerileri haritaya uygulandı.'); },
     'sarki-sil': (el) => {
