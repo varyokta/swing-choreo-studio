@@ -208,3 +208,13 @@ pre.metin { white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.8
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.88rem; z-index: 20; max-width: calc(100% - 32px); }
 .hareket-satir.kapali { opacity: 0.6; }
 .hareket-satir.kapali .ad::after { content: " · otomatikte kapalı"; font-weight: 400; color: var(--muted); font-size: 0.85rem; }
+
+/* Spotify oynatıcı şeridi (kendi adresindeki sürüm) */
+#spotify-cubuk { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: var(--surface); border-top: 1px solid var(--line);
+  padding-top: 8px; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#spotify-cubuk .sc-ic { max-width: 960px; margin: 0 auto; display: grid; gap: 4px; }
+#spotify-cubuk iframe { width: 100%; border: 0; border-radius: 12px; display: block; }
+#spotify-not { font-size: 0.76rem; color: var(--muted); min-height: 1em; }
+body.spotify-acik { padding-bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
+body.spotify-acik .toast { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
