@@ -220,6 +220,7 @@ const SCS = (function () {
 
   function adayPuani(m, t, L, side, st, ctx, kopya, on) {
     const { song, ayar } = ctx;
+    const guclu = ayar.uyum === 'guclu'; // "Müziğe vurgu uyumu: Güçlü"
     let p = 0;
     const acc = m.accents || [];
     if (m.kind === 'poz') {
@@ -260,14 +261,14 @@ const SCS = (function () {
     let denk = 0;
     for (const a of ctx.vurgular) {
       if (a < t - EPS || a >= son - EPS) continue;
-      if (ofsSet.has(Math.round(a * 2))) { p += 1.8; denk++; }
+      if (ofsSet.has(Math.round(a * 2))) { p += guclu ? 3.4 : 1.8; denk++; }
       else if (!ofs.length && yakin(a, t)) p += keskinMi(m) ? 1.0 : 0.1; // vurgu sayımı girilmemiş harekette eski kural
-      else if (m.character === 'akıcı' && L >= 4) p -= 0.9;
+      else if (m.character === 'akıcı' && L >= 4) p -= guclu ? 1.8 : 0.9;
       else if (!ofs.length && keskinMi(m)) p += 0.3;
-      else p -= 0.4;
+      else p -= guclu ? 0.9 : 0.4;
     }
     // vurgu sayımı müzikte darbesiz bir yere düşüyorsa, yakında darbe varken hafif ceza (vurgu boşa gider)
-    if (ofs.length && !denk && ctx.vurgular.some((a) => a >= t - EPS && a < son - EPS)) p -= 0.3;
+    if (ofs.length && !denk && ctx.vurgular.some((a) => a >= t - EPS && a < son - EPS)) p -= guclu ? 0.9 : 0.3;
     // enerji yükselişi/düşüşü: sekizlik başında enerji arttıysa keskin/enerjik giriş, düştüyse akıcı geçiş
     const govdeBas = t + (on ? 1 : 0);
     if (m.kind !== 'poz' && yakin(mod(govdeBas, 8), 0)) {
@@ -1225,7 +1226,7 @@ const SCS = (function () {
   }
 
   // Vuruş başına ölçümlerden harita önerisi (ilk 1 değişince yeniden çağrılır)
-  function turet({ beats, vDb, vOn, ozel, origin }) {
+  function turet({ beats, vDb, vOn, ozel, origin, hassasiyet }) {
     const nb = beats.length;
     const top = Math.max(0, nb - 1 - origin);
     const B = ozel.length ? ozel[0].length : 0;
@@ -1259,21 +1260,31 @@ const SCS = (function () {
       i = j + 1;
     }
     const breakSet = new Set(temizBreak);
-    // vurgular: her 32'de en güçlü 2 darbe (z > 2,5) + break'ten sonraki ilk vuruş
+    // vurgular: vuruş, hemen yanındaki vuruşlardan belirgin şekilde güçlüyse darbedir (riff'te her 4 vuruşta
+    // bir gelen darbeler de yakalansın diye 32 vuruşluk ortalamaya değil komşulara bakılır).
+    // Ölçü: başlangıç gücü ve ses düzeyinin komşulara göre farkı, şarkı genelinde standartlaştırılmış.
+    // vuruşun, hem hemen yanındaki iki vuruştan hem de ±2 vuruşun ortalamasından ne kadar güçlü olduğu
+    const komsuFark = (dizi, i) => {
+      const yakinlar = [i - 1, i + 1].filter((j) => j >= origin && j < nb).map((j) => dizi[j]);
+      const dortlu = [i - 2, i - 1, i + 1, i + 2].filter((j) => j >= origin && j < nb).map((j) => dizi[j]);
+      if (!yakinlar.length) return 0;
+      return dizi[i] - Math.max(Math.max(...yakinlar), ortalama(dortlu));
+    };
+    const fOn = [], fDb = [];
+    for (let r = 0; r < top; r++) { fOn.push(komsuFark(vOn, origin + r)); fDb.push(komsuFark(vDb, origin + r)); }
+    const gz = (a) => { const md = medyan(a); const mad = medyan(a.map((v) => Math.abs(v - md))) * 1.4826 || 1; return a.map((v) => (v - md) / mad); };
+    const zKomsuOn = gz(fOn), zKomsuDb = gz(fDb);
+    const VS = { az: { esik: 2.6, en: 2 }, orta: { esik: 1.8, en: 4 }, cok: { esik: 1.2, en: 8 } }[hassasiyet || 'orta'] || { esik: 1.8, en: 4 };
     const accents = [];
     for (let c = 0; c * 32 < top; c++) {
       const ad = [];
       for (let r = c * 32; r < Math.min(top, c * 32 + 32); r++) {
         if (breakSet.has(r)) continue;
-        const i = origin + r;
-        const kom = [];
-        for (let j = Math.max(origin, i - 16); j < Math.min(nb, i + 17); j++) kom.push(vOn[j]);
-        const m = ortalama(kom), s = stdSapma(kom) || 1;
-        const z = (vOn[i] - m) / s;
-        if (z > 2.5) ad.push({ r, z });
+        const z = zKomsuOn[r] + 0.5 * zKomsuDb[r];
+        if (z > VS.esik) ad.push({ r, z });
       }
       ad.sort((a, b) => b.z - a.z);
-      for (const x of ad.slice(0, 2)) accents.push(x.r);
+      for (const x of ad.slice(0, VS.en)) accents.push(x.r);
     }
     for (const r of temizBreak) if (!breakSet.has(r + 1) && r + 1 < top) accents.push(r + 1);
     // bölümler: 32'lik cümlelerin ortalama tınısı benzerliğine göre harf

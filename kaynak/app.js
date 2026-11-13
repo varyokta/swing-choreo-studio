@@ -55,7 +55,9 @@
   const KAYNAK = { dosya: 'Ses dosyası analizi', mikrofon: 'Mikrofonla dinleme', dokunma: 'Dokunarak', elle: 'Elle girildi', web: 'Web sitesi', ornek: 'Örnek değer' };
   const AGIRLIK = { any: 'Fark etmez', L: 'Sol ayakta', R: 'Sağ ayakta' };
   const BOLUMLER = ['Giriş', 'A', 'B', 'C', 'D', 'Solo', 'Shout', 'Son'];
-  const varsayilanAyar = () => ({ seviye: 2, enerji: 2, stil: 'klasik', tekrar: 2, uzunluk: 'tum', bas: 1, bit: 8 });
+  const varsayilanAyar = () => ({ seviye: 2, enerji: 2, stil: 'klasik', tekrar: 2, uzunluk: 'tum', bas: 1, bit: 8, uyum: 'normal' });
+  const UYUM = { normal: 'Normal', guclu: 'Güçlü' };
+  const HASSASIYET = { az: 'Az', orta: 'Orta', cok: 'Çok' };
 
   function spotifyId(s) {
     if (!s) return null;
@@ -495,6 +497,8 @@
         <p class="ipucu">Her kutu bir sekizlik, her satır bir 32'lik cümle. Sayıma dokun: önce vurgu (hit), sonra break, sonra temiz. Enerji çubuklarına dokunarak sekizliğin enerjisini değiştir. ${s.analiz ? 'Analizden gelen işaretler öneridir; şarkıyı dinleyerek düzelt.' : 'Ses analizi yoksa işaretleri sen koyarsın.'}</p></div>
         <div class="lejant"><span><i style="background:var(--brass)"></i>Vurgu: güçlü müzik darbesi</span><span><i style="background:var(--break)"></i>Break: müzik durur, Freeze konur</span><span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>Temiz</span></div>
         <div class="satir"><span class="kucuk">${intro}</span></div>
+        ${s.analiz && s.beats ? `<div class="satir kucuk"><label class="yan">Vurgu hassasiyeti <select data-ch="vurgu-hassasiyet" style="width:auto;padding:4px 8px">${Object.entries(HASSASIYET).map(([k, ad]) => `<option value="${k}" ${(s.vurguHassasiyet || 'orta') === k ? 'selected' : ''}>${ad}</option>`).join('')}</select></label>
+          <span class="soluk">${(s.accents || []).length} vurgu işaretli. "Çok": darbesi bol parçalarda daha fazla darbe işaretlenir (her 32 sayımda 4'e kadar); "Az": sadece en belirginleri. Değiştirince analizden gelen vurgular yenilenir, elle koyduğun vurguların yerini alır.</span></div>` : ''}
         <div class="satir kucuk"><span>İlk 1'i kaydır:</span>
           <button class="btn kucuk" data-act="ilk1" data-d="-8">−8</button><button class="btn kucuk" data-act="ilk1" data-d="-1">−1</button>
           <button class="btn kucuk" data-act="ilk1" data-d="1">+1</button><button class="btn kucuk" data-act="ilk1" data-d="8">+8</button>
@@ -525,6 +529,7 @@
           <label>Stil${ayarSecimi('stil', ayar.stil, STIL)}</label>
           <label>Hareket tekrarı${ayarSecimi('tekrar', ayar.tekrar, TEKRAR)}</label>
           <label>Uzunluk${ayarSecimi('uzunluk', ayar.uzunluk, UZUNLUK)}</label>
+          <label>Müziğe vurgu uyumu${ayarSecimi('uyum', ayar.uyum, UYUM)}</label>
           ${ayar.uzunluk === 'secili' ? `<label>Başlangıç${blokSec('bas', ayar.bas)}</label><label>Bitiş (dahil)${blokSec('bit', ayar.bit)}</label>` : ''}
         </div>
         <p class="ipucu">Enerji hem hareketlerin enerjisini hem yoğunluğu belirler: düşükte uzun ve akıcı hareketler, yüksekte kısa ve sık değişen hareketler. Seviye, üstündeki hareketleri dışarıda bırakır. Hareketin rahat tempo aralığı şarkının BPM'iyle uymuyorsa o hareket seçilmez.</p>
@@ -1001,7 +1006,13 @@
       const eskiBpm = s.bpm;
       s.bpm = r.bpm; s.bpmOlcum = r.bpm; s.bpmKaynak = kaynak;
       let ek = '';
-      if (!s.haritaElle) { s.energy = r.energy; s.breaks = r.breaks; s.accents = r.accents; s.sections = r.sections; ek = ' Harita önerileri uygulandı.'; }
+      if (!s.haritaElle) {
+        s.energy = r.energy; s.breaks = r.breaks; s.sections = r.sections;
+        // seçili vurgu hassasiyetiyle (varsayılan "orta" analizin kendisi)
+        s.accents = s.vurguHassasiyet && s.vurguHassasiyet !== 'orta'
+          ? S.turet({ beats: s.beats, vDb: r.vDb, vOn: r.vOn, ozel: r.ozel, origin: s.originIdx, hassasiyet: s.vurguHassasiyet }).accents : r.accents;
+        ek = ' Harita önerileri uygulandı.';
+      }
       else ek = ' Elle işaretlerin korundu; istersen analiz önerilerini uygulayabilirsin.';
       if (eskiBpm && Math.abs(eskiBpm - r.bpm) / r.bpm > 0.03) ek += ` Önceki seçilen tempo ${sayi(eskiBpm)} idi; gerekirse yarım/çift tempoyu seç.`;
       if (fark != null) ek += ' Vuruşlar şarkının Spotify zamanına oturtuldu: Prova sekmesinde sayım ayarsız eşleşir.';
@@ -1894,6 +1905,13 @@
       git('sarki-' + s.id);
       dosyaAnaliz(s, f);
     },
+    'vurgu-hassasiyet': (el) => {
+      const s = aktifSarki(); if (!s || !s.analiz || !s.beats) return;
+      s.vurguHassasiyet = el.value;
+      s.accents = S.turet({ beats: s.beats, vDb: s.analiz.vDb, vOn: s.analiz.vOn, ozel: s.analiz.ozel, origin: s.originIdx, hassasiyet: el.value }).accents;
+      s.updatedAt = Date.now(); kaydet(); ciz();
+      toast(`Vurgu hassasiyeti: ${HASSASIYET[el.value]}. ${s.accents.length} vurgu işaretlendi; koreografiyi yeniden oluşturunca hareketler bunlara göre yerleşir.`);
+    },
     bolum: (el) => {
       const s = aktifSarki(); const b = +el.dataset.c * 32;
       s.sections = (s.sections || []).filter((x) => x.beat !== b);
@@ -1977,7 +1995,7 @@
     s.accents = (s.accents || []).map((b) => b - d).filter((b) => b >= 0);
     s.breaks = (s.breaks || []).map((b) => b - d).filter((b) => b >= 0);
     if (s.analiz && s.analiz.vDb && s.beats) {
-      const yeni = S.turet({ beats: s.beats, vDb: s.analiz.vDb, vOn: s.analiz.vOn, ozel: s.analiz.ozel, origin: s.originIdx });
+      const yeni = S.turet({ beats: s.beats, vDb: s.analiz.vDb, vOn: s.analiz.vOn, ozel: s.analiz.ozel, origin: s.originIdx, hassasiyet: s.vurguHassasiyet });
       s.energy = yeni.energy;
       if (!s.haritaElle) s.sections = yeni.sections;
       else s.sections = (s.sections || []).map((x) => ({ beat: Math.max(0, Math.round((x.beat - d) / 32) * 32), label: x.label }));
@@ -1991,7 +2009,7 @@
   }
   function haritayiAnalizdenKur(s) {
     if (!s.analiz || !s.beats) return;
-    const r = S.turet({ beats: s.beats, vDb: s.analiz.vDb, vOn: s.analiz.vOn, ozel: s.analiz.ozel, origin: s.originIdx });
+    const r = S.turet({ beats: s.beats, vDb: s.analiz.vDb, vOn: s.analiz.vOn, ozel: s.analiz.ozel, origin: s.originIdx, hassasiyet: s.vurguHassasiyet });
     s.energy = r.energy; s.breaks = r.breaks; s.accents = r.accents; s.sections = r.sections;
   }
 
