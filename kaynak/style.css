@@ -218,3 +218,9 @@ pre.metin { white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.8
 #spotify-not { font-size: 0.76rem; color: var(--muted); min-height: 1em; }
 body.spotify-acik { padding-bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
 body.spotify-acik .toast { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
+
+/* şarkı listesi: kart + araçlar, yerinde düzenleme */
+.sarki-kart { display: grid; gap: 4px; }
+.sarki-arac { display: flex; gap: 6px; justify-content: flex-end; }
+.sarki-duzen { gap: 10px; }
+details.panel > summary { cursor: pointer; list-style-position: inside; }

@@ -240,6 +240,12 @@ pre.metin { white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.8
 #spotify-not { font-size: 0.76rem; color: var(--muted); min-height: 1em; }
 body.spotify-acik { padding-bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
 body.spotify-acik .toast { bottom: calc(124px + env(safe-area-inset-bottom, 0px)); }
+
+/* şarkı listesi: kart + araçlar, yerinde düzenleme */
+.sarki-kart { display: grid; gap: 4px; }
+.sarki-arac { display: flex; gap: 6px; justify-content: flex-end; }
+.sarki-duzen { gap: 10px; }
+details.panel > summary { cursor: pointer; list-style-position: inside; }
 </style>
 <div id="uygulama"></div>
 <script>
@@ -1732,26 +1738,68 @@ const SCS = (function () {
     const liste = [...DB.songs].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     const satirlar = liste.map((s) => {
       const n = koreolari(s.id).length;
-      const alt = [s.artist, s.year, n ? `${n} koreografi` : 'koreografi yok', s.spotifyId ? 'Spotify bağlı' : ''].filter(Boolean).map(esc).join(' · ');
-      return `<a class="sarki-satir" href="#sarki-${s.id}" data-act="git" data-h="sarki-${s.id}">
-        <div style="min-width:0"><div class="ad">${esc(s.title)} ${s.example ? '<span class="cip">örnek</span>' : ''}</div><div class="alt">${alt}</div></div>
-        <div class="bpm-buyuk">${s.bpm ? sayi(s.bpm) : '—'}<small>BPM</small></div></a>`;
+      if (ui.sarkiDuzen === s.id) {
+        // listede yerinde düzenleme
+        const alan = (k, ad, v, ek) => `<label>${ad}<input data-ch="sarki-alan" data-id="${s.id}" data-alan="${k}" value="${esc(v)}" ${ek || ''}></label>`;
+        return `<div class="panel sarki-duzen">
+          <div class="izgara2">${alan('title', 'Şarkı adı', s.title)}${alan('artist', 'Sanatçı', s.artist, 'placeholder="ör. Slim &amp; Slam"')}${alan('year', 'Kayıt yılı', s.year, 'inputmode="numeric"')}${alan('album', 'Albüm ya da versiyon notu', s.album)}</div>
+          ${alan('spotify', 'Spotify şarkı bağlantısı', s.spotifyId ? 'https://open.spotify.com/track/' + s.spotifyId : '', 'placeholder="https://open.spotify.com/track/…"')}
+          <div class="satir"><button class="btn ana kucuk" data-act="sarki-duzen-bitti">Bitti</button>${silDugme('sarki-' + s.id, 'sarki-sil', `data-id="${s.id}"`, n ? `Sil (${n} koreografisiyle)` : 'Sil')}</div>
+        </div>`;
+      }
+      const alt = [s.artist || 'sanatçı eklenmedi', s.year, n ? `${n} koreografi` : 'koreografi yok', s.spotifyId ? 'Spotify bağlı' : ''].filter(Boolean).map(esc).join(' · ');
+      return `<div class="sarki-kart">
+        <a class="sarki-satir" href="#sarki-${s.id}" data-act="git" data-h="sarki-${s.id}">
+          <div style="min-width:0"><div class="ad">${esc(s.title)} ${s.example ? '<span class="cip">örnek</span>' : ''}</div><div class="alt">${alt}</div></div>
+          <div class="bpm-buyuk">${s.bpm ? sayi(s.bpm) : '—'}<small>BPM</small></div></a>
+        <div class="sarki-arac"><button class="btn kucuk" data-act="sarki-duzen" data-id="${s.id}">Düzenle</button>${silDugme('sarki-' + s.id, 'sarki-sil', `data-id="${s.id}"`)}</div>
+      </div>`;
     }).join('');
     return `<div class="yigin">
-      <section class="yigin" style="gap:10px"><h2>Şarkılarım</h2>
-        ${satirlar ? `<div class="liste">${satirlar}</div>` : '<div class="panel bos-durum">Henüz şarkı yok. Aşağıdan ilk şarkını ekle.</div>'}
+      <section class="panel" style="gap:10px">
+        <div class="satir"><button class="btn ana" data-act="spotify-ekle">Spotify'dan ekle</button>
+          <span class="kucuk soluk">Spotify'da şarkıyı aç → Paylaş → Bağlantıyı kopyala, sonra bu düğmeye bas.</span></div>
+        ${ui.yapistirGoster ? `<label>Bağlantıyı buraya yapıştır<input id="sp-yapistir" placeholder="https://open.spotify.com/track/…" autocomplete="off"></label>
+          ${ui.yapistirHata ? `<p class="not uyari">${esc(ui.yapistirHata)}</p>` : '<p class="kucuk soluk">Uygulama panoyu okuyamadı; bağlantıyı buraya yapıştır, şarkı kendiliğinden eklenir.</p>'}` : ''}
       </section>
-      <section class="panel">
-        <div class="yigin" style="gap:6px"><h2>Yeni şarkı</h2>
-        <p class="ipucu">Spotify bağlantısı şarkının hangi kaydı olduğunu belirler; aynı adlı farklı kayıtlar ayrı tutulur. Bu sayfa Spotify'dan ad, sanatçı ya da tempo çekemez: adı ve sanatçıyı sen yazarsın, tempoyu şarkının sayfasında bulursun.</p></div>
-        <form data-form="yeni-sarki" class="yigin" style="gap:12px" autocomplete="off">
+      <section class="yigin" style="gap:10px"><h2>Şarkılarım</h2>
+        ${satirlar ? `<div class="liste">${satirlar}</div>` : '<div class="panel bos-durum">Henüz şarkı yok. "Spotify\'dan ekle" ile ilk şarkını ekle.</div>'}
+      </section>
+      <details class="panel" ${ui.yeniUyari || ui.yeniForm ? 'open' : ''}>
+        <summary><b>Elle ekle</b> <span class="kucuk soluk">(Spotify bağlantısı olmadan ya da bilgileri kendin yazarak)</span></summary>
+        <form data-form="yeni-sarki" class="yigin" style="gap:12px;margin-top:12px" autocomplete="off">
           <label>Spotify şarkı bağlantısı (isteğe bağlı)<input id="ys-spotify" value="${esc(f.spotify)}" placeholder="https://open.spotify.com/track/…"></label>
           <div class="izgara2"><label>Şarkı adı<input id="ys-ad" value="${esc(f.ad)}" required placeholder="ör. The Flat Foot Floogie"></label><label>Sanatçı (bu kaydın)<input id="ys-sanatci" value="${esc(f.sanatci)}" required placeholder="ör. Slim &amp; Slam"></label></div>
           <div class="izgara2"><label>Kayıt yılı<input id="ys-yil" value="${esc(f.yil)}" inputmode="numeric" placeholder="ör. 1938"></label><label>Albüm ya da versiyon notu<input id="ys-album" value="${esc(f.album)}" placeholder="ör. canlı kayıt, 1959 versiyonu"></label></div>
           ${ui.yeniUyari ? `<p class="not uyari">${ui.yeniUyari}</p>` : ''}
           <div class="satir"><button class="btn ana" type="submit">${ui.yeniOnay ? 'Yine de ekle (farklı kayıt)' : 'Şarkıyı ekle'}</button>${ui.yeniOnay ? '<button class="btn" type="button" data-act="yeni-vazgec">Vazgeç</button>' : ''}</div>
         </form>
-      </section></div>`;
+      </details></div>`;
+  }
+  function yeniSarki(v) {
+    return Object.assign({ id: S.uid('s'), title: '', artist: '', year: '', album: '', spotifyId: null, bpm: null, bpmOlcum: null, bpmKaynak: null, bpmSources: [], durationSec: null, firstOneSec: 0, beats: null, originIdx: null, energy: [], breaks: [], accents: [], sections: [], createdAt: Date.now(), updatedAt: Date.now() }, v);
+  }
+  // Spotify bağlantısıyla tek adımda ekleme; şarkı adı Spotify'ın paylaşım bilgisinden (oEmbed) gelir
+  async function spotifyIleEkle(metin) {
+    const id = spotifyId(String(metin || '').trim());
+    if (!id) {
+      ui.yapistirGoster = true;
+      ui.yapistirHata = metin && String(metin).trim() ? 'Bu bir Spotify şarkı bağlantısı değil. Spotify\'da şarkıyı aç → Paylaş → Bağlantıyı kopyala (albüm ya da çalma listesi değil).' : null;
+      ciz();
+      setTimeout(() => { const i = $('#sp-yapistir'); if (i) i.focus(); }, 50);
+      return;
+    }
+    const varOlan = DB.songs.find((x) => x.spotifyId === id);
+    if (varOlan) { ui.yapistirGoster = false; toast(`“${varOlan.title}” zaten ekli; açıyorum.`); git('sarki-' + varOlan.id); return; }
+    const s = yeniSarki({ spotifyId: id, title: 'Spotify şarkısı' });
+    DB.songs.push(s); kaydet();
+    ui.yapistirGoster = false; ui.yapistirHata = null;
+    git('sarki-' + s.id);
+    try {
+      const r = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/track/' + id));
+      if (r.ok) { const j = await r.json(); if (j && j.title) { s.title = j.title; s.updatedAt = Date.now(); kaydet(); ciz(); } }
+    } catch (e) { /* ad gelmezse elle yazılır */ }
+    toast('Şarkı eklendi. Sanatçıyı ve yılı Kayıt bilgisi bölümünden ya da listede "Düzenle" ile ekleyebilirsin.');
   }
 
   // ---- Şarkı ----
@@ -2684,8 +2732,16 @@ const SCS = (function () {
       if (!onayli('sarki-' + el.dataset.id)) return;
       DB.songs = DB.songs.filter((x) => x.id !== el.dataset.id);
       DB.choreos = DB.choreos.filter((x) => x.songId !== el.dataset.id);
+      ui.sarkiDuzen = null;
       kaydet(); git('sarkilar'); toast('Şarkı silindi.');
     },
+    'spotify-ekle': async () => {
+      let metin = '';
+      try { if (navigator.clipboard && navigator.clipboard.readText) metin = await navigator.clipboard.readText(); } catch (e) { /* izin yok: yapıştırma alanı açılır */ }
+      spotifyIleEkle(metin);
+    },
+    'sarki-duzen': (el) => { ui.sarkiDuzen = el.dataset.id; ciz(); },
+    'sarki-duzen-bitti': () => { ui.sarkiDuzen = null; ciz(); toast('Kaydedildi.'); },
     isaret: (el) => {
       const s = aktifSarki(); const b = +el.dataset.b;
       const acc = new Set(s.accents || []), brk = new Set(s.breaks || []);
@@ -2826,7 +2882,7 @@ const SCS = (function () {
 
   const degisim = {
     'sarki-alan': (el) => {
-      const s = aktifSarki(); const k = el.dataset.alan; const v = el.value.trim();
+      const s = el.dataset.id ? sarki(el.dataset.id) : aktifSarki(); const k = el.dataset.alan; const v = el.value.trim();
       if (k === 'spotify') {
         if (!v) s.spotifyId = null;
         else {
@@ -3042,6 +3098,11 @@ const SCS = (function () {
 
   function sonraCiz() {
     spotifyGuncelle();
+    const yap = $('#sp-yapistir');
+    if (yap) {
+      yap.addEventListener('paste', () => setTimeout(() => spotifyIleEkle(yap.value), 0));
+      yap.addEventListener('change', () => spotifyIleEkle(yap.value));
+    }
     const a = $('#pr-ses');
     if (a) {
       const s = aktifSarki();
