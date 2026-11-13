@@ -189,6 +189,7 @@
     if (h.startsWith('sarki-') && sarki(h.slice(6))) return { gorunum: 'sarki', id: h.slice(6) };
     if (h === 'hareketler') return { gorunum: 'hareketler' };
     if (h === 'yedek') return { gorunum: 'yedek' };
+    if (h === 'koreografiler') return { gorunum: 'koreografiler' };
     return { gorunum: 'sarkilar' };
   }
   function git(h) {
@@ -196,7 +197,7 @@
     try { if (location.hash !== '#' + h) history.replaceState(null, '', '#' + h); } catch (e) { /* hash yazılamıyorsa sayfa içi kalır */ }
     ui.rota = (() => {
       if (h.startsWith('sarki-')) return { gorunum: 'sarki', id: h.slice(6) };
-      if (h === 'hareketler' || h === 'yedek') return { gorunum: h };
+      if (h === 'hareketler' || h === 'yedek' || h === 'koreografiler') return { gorunum: h };
       return { gorunum: 'sarkilar' };
     })();
     ciz();
@@ -210,6 +211,7 @@
     let govde = '';
     if (r.gorunum === 'sarki' && sarki(r.id)) govde = vSarki(sarki(r.id));
     else if (r.gorunum === 'hareketler') govde = vHareketler();
+    else if (r.gorunum === 'koreografiler') govde = vKoreografiler();
     else if (r.gorunum === 'yedek') govde = vYedek();
     else govde = vSarkilar();
     const aktif = (g) => (r.gorunum === g || (g === 'sarkilar' && r.gorunum === 'sarki') ? ' aria-current="page"' : '');
@@ -218,6 +220,7 @@
         <a class="marka" href="#sarkilar" data-act="git" data-h="sarkilar"><b>Swing Choreo Studio</b><span>5 6 7 8</span></a>
         <nav class="gezinme" aria-label="Bölümler">
           <a href="#sarkilar" data-act="git" data-h="sarkilar"${aktif('sarkilar')}>Şarkılar</a>
+          <a href="#koreografiler" data-act="git" data-h="koreografiler"${aktif('koreografiler')}>Koreografiler</a>
           <a href="#hareketler" data-act="git" data-h="hareketler"${aktif('hareketler')}>Hareketler</a>
           <a href="#yedek" data-act="git" data-h="yedek"${aktif('yedek')}>Yedek</a>
         </nav>
@@ -408,7 +411,9 @@
           <div class="satir"><button class="btn ana" data-act="mik-bitir">Bitir ve analiz et</button><button class="btn" data-act="mik-vazgec">Vazgeç</button></div></div>` : ''}
         ${ui.mikHata ? `<p class="not uyari">${esc(ui.mikHata)}</p>` : ''}
         <div id="analiz-durum">${analizDurumu(an)}</div>
-        ${ui.sesler[s.id] ? `<p class="kucuk soluk">Bu oturumda yüklü: ${esc(ui.sesler[s.id].ad)}. Prova sekmesinde dosyayı çalarsan sayım vuruşlara kilitli ilerler.</p>` : ''}
+        ${s.sesDosyasi ? `<div class="satir"><span class="kucuk">Uygulamada saklı dosya: <b>${esc(s.sesDosyasi.ad)}</b> (${boyutMetni(s.sesDosyasi.boyut || 0)}). Prova'da hazır; sayım vuruşlara kilitli ilerler.</span>
+          ${silDugme('ses-' + s.id, 'ses-sil', `data-id="${s.id}"`, 'Dosyayı uygulamadan sil')}</div>`
+          : ui.sesler[s.id] ? `<p class="kucuk soluk">Bu oturumda yüklü: ${esc(ui.sesler[s.id].ad)} (uygulamada saklanamadı).</p>` : ''}
         ${a ? `<div class="not">
             <b>Son analiz (${esc(KAYNAK[a.kaynak] || a.kaynak)}, ${tarih(a.tarih)}):</b> ölçülen tempo ${sayi(a.bpm)} BPM${Math.abs(a.bpmSon - a.bpmBas) / a.bpmBas > 0.03 ? ` (başta ${sayi(a.bpmBas)}, sonda ${sayi(a.bpmSon)}: kayıtta tempo kayıyor; sayım bulunan vuruşları izler)` : ''}.
             Tempo adayları: ${a.adaylar.map((x) => `${sayi(x.bpm)} (güç ${x.guc})`).join(', ')}.
@@ -579,6 +584,7 @@
           ${kilitli ? `<span class="cip brass">${kilitli} sabit</span>` : ''}
           ${uyariSay ? `<span class="cip uyari">${uyariSay} uyarı</span>` : '<span class="cip teal">Sayım kontrolü temiz</span>'}
           ${bosluklar.length ? `<span class="cip uyari">${bosluklar.length} boşluk</span>` : ''}
+          ${c.hazir ? '<span class="cip brass">Hazır</span>' : ''}
           <span class="cip">${esc(SEVIYE[ay.seviye] || '')} · enerji ${esc((ENERJI[ay.enerji] || '').toLocaleLowerCase('tr'))} · ${esc(STIL[ay.stil] || '')} · tekrar ${esc((TEKRAR[ay.tekrar] || '').toLocaleLowerCase('tr'))}</span>
         </div>
         ${uyariSay || bosluklar.length ? `<div class="not uyari satir ara"><span>${uyariSay ? `${uyariSay} harekette uyarı var` : ''}${uyariSay && bosluklar.length ? ', ' : ''}${bosluklar.length ? `${bosluklar.length} boşluk var` : ''}. Düzeltme hareketleri silmez: sadece yerlerini ve geçişlerini (8'de hazırlık, 8'i bırakma, gerekirse duruş) kurallara göre ayarlar. Boşluklara yeni hareket koyar. Sabitlediğin hareketlere dokunmaz.</span>
@@ -587,6 +593,7 @@
           <button class="btn kucuk" data-act="metin">${ui.metinGoster ? 'Metni gizle' : 'Metin olarak göster'}</button>
           <button class="btn kucuk" data-act="kilitsiz-yenile">Sabit olmayanları yeniden oluştur</button>
           <button class="btn kucuk" data-act="git-prova">Provaya geç</button>
+          <button class="btn kucuk ${c.hazir ? '' : 'ana'}" data-act="hazir-isaret" data-id="${c.id}">${c.hazir ? 'Hazırlardan çıkar' : 'Hazır olarak işaretle'}</button>
           ${silDugme('koreo-' + c.id, 'koreo-sil', `data-id="${c.id}"`, 'Bu koreografiyi sil')}
         </div>
         ${ui.metinGoster ? `<pre class="metin" id="koreo-metin">${esc(S.metinCikar(c, s, DB.moves))}</pre><div><button class="btn kucuk" data-act="metin-kopyala">Kopyala</button></div>` : ''}
@@ -694,7 +701,10 @@
       </div>
       <section class="panel">
         ${ses ? `<div class="yigin" style="gap:8px"><h3>Dosyayla prova</h3><audio id="pr-ses" controls preload="auto" src="${ses.url}" style="width:100%"></audio>
-          <p class="ipucu">Dosyayı çal: sayım, analizde bulunan vuruşlara kilitli ilerler. İleri-geri sardığında sayım da gelir.</p></div>` : ''}
+          <p class="ipucu">${ses.sakli ? 'Uygulamada saklı dosya. ' : ''}Dosyayı çal: sayım, analizde bulunan vuruşlara kilitli ilerler. İleri-geri sardığında sayım da gelir.</p></div>`
+          : s.sesDosyasi ? '<p class="kucuk soluk">Saklı ses dosyası hazırlanıyor…</p>'
+          : `<div class="satir"><label class="btn" for="pr-dosya">Ses dosyası seç</label><input type="file" id="pr-dosya" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac" hidden data-ch="ses-dosya">
+            <span class="kucuk soluk">Dosyayla prova için: dosya bir kez seçilir, analiz edilir ve uygulamada saklanır.</span></div>`}
         <div class="yigin" style="gap:8px">
           ${SPOTIFY_VAR && s.spotifyId ? `<h3>${ses ? 'Ya da Spotify ile' : 'Spotify ile prova'}</h3>
           <p class="ipucu">${bagli() ? 'Telefondaki Spotify\'da bu şarkıyı çal (ya da alttaki şeritten başlat)' : 'Alttaki Spotify oynatıcısında çal'}: sayım şarkının çalan anına kilitli, ileri sarınca sayım da gelir, durdurunca durur. Sayım müziğe oturmuyorsa şarkı seçili sekizliğin 1'ine geldiği anda aşağıdaki düğmeye dokun; bu ayar şarkıya kaydedilir.${s.spotifyKayma ? ` (Kayıtlı ayar: ${sayi(s.spotifyKayma)} sn)` : ''}</p>
@@ -843,6 +853,54 @@
     </form>`;
   }
 
+  // ---- Koreografiler (hazır olanlar) ----
+  function koreoKarti(c, kisa) {
+    const s = sarki(c.songId);
+    if (!s) return '';
+    const v = S.dogrula(c.items, s, DB.moves, c.range);
+    const uyari = [...v.uyarilar.values()].filter((u) => u.length).length + v.bosluklar.length;
+    const sekiz = Math.ceil(c.range[1] / 8) - Math.floor(c.range[0] / 8);
+    const sure = s.bpm ? (c.range[1] - c.range[0]) * 60 / s.bpm : null;
+    const acik = ui.metinAcik === c.id;
+    if (kisa) {
+      return `<div class="satir ara hazir-kisa"><span style="min-width:0"><b>${esc(c.name)}</b> <span class="kucuk soluk">· ${esc(s.title)} · ${tarih(c.updatedAt || c.createdAt)}</span></span>
+        <span class="satir"><button class="btn kucuk" data-act="koreo-ac" data-id="${c.id}">Aç</button><button class="btn kucuk ana" data-act="hazir-isaret" data-id="${c.id}">Hazır yap</button></span></div>`;
+    }
+    return `<article class="panel hazir-kart">
+      <div class="satir ara" style="align-items:flex-start"><div style="min-width:0"><h3>${esc(c.name)}</h3>
+        <div class="kucuk soluk">${esc(s.title)}${s.artist ? ' · ' + esc(s.artist) : ''}</div></div>
+        ${s.bpm ? `<div class="bpm-buyuk">${sayi(s.bpm)}<small>BPM</small></div>` : ''}</div>
+      <div class="koreo-ozet">
+        <span class="cip">${sekiz} sekizlik${sure ? ' · ' + sureMetni(sure) : ''}</span>
+        <span class="cip">${c.items.length} hareket</span>
+        ${uyari ? `<span class="cip uyari">${uyari} uyarı</span>` : '<span class="cip teal">Sayım temiz</span>'}
+        ${s.sesDosyasi ? '<span class="cip">ses dosyası saklı</span>' : ''}
+        <span class="cip">${tarih(c.updatedAt || c.createdAt)}</span>
+      </div>
+      <div class="satir">
+        <button class="btn ana kucuk" data-act="koreo-prova" data-id="${c.id}">Prova</button>
+        <button class="btn kucuk" data-act="koreo-ac" data-id="${c.id}">Düzenle</button>
+        <button class="btn kucuk" data-act="koreo-metin-ac" data-id="${c.id}">${acik ? 'Metni gizle' : 'Metin'}</button>
+        <button class="btn kucuk" data-act="hazir-isaret" data-id="${c.id}">Hazırlardan çıkar</button>
+      </div>
+      ${acik ? `<pre class="metin" id="metin-${c.id}">${esc(S.metinCikar(c, s, DB.moves))}</pre><div><button class="btn kucuk" data-act="koreo-metin-kopyala" data-id="${c.id}">Kopyala</button></div>` : ''}
+    </article>`;
+  }
+  function vKoreografiler() {
+    const sira = (a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt);
+    const hazir = DB.choreos.filter((c) => c.hazir && sarki(c.songId)).sort(sira);
+    const digerleri = DB.choreos.filter((c) => !c.hazir && sarki(c.songId)).sort(sira);
+    return `<div class="yigin">
+      <section class="yigin" style="gap:10px"><h2>Hazır koreografiler</h2>
+        ${hazir.length ? hazir.map((c) => koreoKarti(c)).join('') : '<div class="panel bos-durum">Henüz hazır koreografi yok. Bir koreografiyi bitirince şarkının Koreografi sekmesinde "Hazır olarak işaretle"ye bas; burada toplanır.</div>'}
+      </section>
+      ${digerleri.length ? `<details class="panel" ${hazir.length ? '' : 'open'}>
+        <summary><b>Üzerinde çalıştıkların (${digerleri.length})</b></summary>
+        <div class="yigin" style="gap:8px;margin-top:10px">${digerleri.map((c) => koreoKarti(c, true)).join('')}</div>
+      </details>` : ''}
+    </div>`;
+  }
+
   // ---- Yedek ----
   function vYedek() {
     const json = ui.yedekGoster ? JSON.stringify(DB, null, 1) : '';
@@ -854,6 +912,18 @@
         ${kayitOk ? '' : '<p class="not uyari">Bu tarayıcı şu an kaydetmiyor; yedeği hemen al.</p>'}
         <div class="satir"><button class="btn ana" data-act="yedek-indir">Yedeği indir (JSON)</button><button class="btn" data-act="yedek-goster">${ui.yedekGoster ? 'JSON metnini gizle' : 'JSON metnini göster'}</button></div>
         ${ui.yedekGoster ? `<textarea id="yedek-metin-cikis" readonly style="min-height:180px;font-family:var(--font-mono);font-size:.78rem">${esc(json)}</textarea><div><button class="btn kucuk" data-act="yedek-kopyala">Kopyala</button></div>` : ''}
+      </section>
+      <section class="panel">
+        <h2>Saklı ses dosyaları</h2>
+        <p class="ipucu">Ses dosyaları bu cihazda, uygulamanın kendi alanında saklanır (yedeğe girmez). Ana ekran simgesini silersen ya da tarayıcı verilerini temizlersen bunlar da silinir; asıl dosyaların bir kopyasını iCloud Drive'da ya da bilgisayarda tut.</p>
+        ${(() => {
+          const l = DB.songs.filter((x) => x.sesDosyasi);
+          if (!l.length) return '<p class="kucuk soluk">Saklı dosya yok.</p>';
+          const top = l.reduce((a, x) => a + (x.sesDosyasi.boyut || 0), 0);
+          return `<p class="kucuk"><b>${l.length} dosya · ${boyutMetni(top)}</b> <span id="depo-bilgi" class="soluk"></span></p>
+            <div class="liste">${l.map((x) => `<div class="satir ara"><span class="kucuk" style="min-width:0">${esc(x.title)} · ${esc(x.sesDosyasi.ad)} · ${boyutMetni(x.sesDosyasi.boyut || 0)}</span>
+              ${silDugme('ses-' + x.id, 'ses-sil', `data-id="${x.id}"`, 'Sil')}</div>`).join('')}</div>`;
+        })()}
       </section>
       <section class="panel">
         <h2>Geri yükle</h2>
@@ -944,6 +1014,59 @@
     }
     ciz();
   }
+  // ---------------- ses dosyası deposu (tarayıcının IndexedDB'si; cihazdan çıkmaz) ----------------
+  const SES_DB = 'swing-choreo-studio-ses', SES_DEPO = 'dosyalar';
+  let sesDbSoz = null;
+  function sesDb() {
+    if (!sesDbSoz) {
+      sesDbSoz = new Promise((res, rej) => {
+        if (!window.indexedDB) { rej(new Error('IndexedDB yok')); return; }
+        const r = indexedDB.open(SES_DB, 1);
+        r.onupgradeneeded = () => r.result.createObjectStore(SES_DEPO);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      }).catch((e) => { sesDbSoz = null; throw e; });
+    }
+    return sesDbSoz;
+  }
+  async function sesIslem(kip, f) {
+    const db = await sesDb();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(SES_DEPO, kip);
+      const st = tx.objectStore(SES_DEPO);
+      let sonuc;
+      const istek = f(st);
+      if (istek) istek.onsuccess = () => { sonuc = istek.result; };
+      tx.oncomplete = () => res(sonuc);
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error || new Error('iptal'));
+    });
+  }
+  const sesSakla = (id, file) => sesIslem('readwrite', (st) => st.put({ blob: file, ad: file.name, boyut: file.size, tarih: Date.now() }, id));
+  const sesOku = (id) => sesIslem('readonly', (st) => st.get(id));
+  const sesSil = (id) => sesIslem('readwrite', (st) => st.delete(id));
+  // şarkı açılınca saklı dosya varsa Prova için hazırlanır
+  const sesYukleniyor = new Set();
+  function sesHazirla(s) {
+    if (!s || !s.sesDosyasi || ui.sesler[s.id] || sesYukleniyor.has(s.id)) return;
+    sesYukleniyor.add(s.id);
+    sesOku(s.id).then((k) => {
+      if (k && k.blob) {
+        ui.sesler[s.id] = { url: URL.createObjectURL(k.blob), ad: k.ad, sakli: true };
+        if (ui.rota.gorunum === 'sarki' && ui.rota.id === s.id && !T.calisiyor) ciz();
+      } else { delete s.sesDosyasi; kaydet(); }
+    }).catch(() => { /* okunamadı: dosya yeniden seçilebilir */ }).finally(() => sesYukleniyor.delete(s.id));
+  }
+  // Yedek sayfasında cihazın kullanım/boş yer bilgisi (tarayıcı izin veriyorsa)
+  function depoBilgisiCiz() {
+    if (!navigator.storage || !navigator.storage.estimate) return;
+    navigator.storage.estimate().then((e) => {
+      const el = $('#depo-bilgi');
+      if (el && e && e.quota) el.textContent = `· uygulamanın kullandığı toplam yer ${boyutMetni(e.usage || 0)}, ayrılabilecek yer yaklaşık ${boyutMetni(e.quota)}`;
+    }).catch(() => {});
+  }
+  function boyutMetni(b) { return b >= 1048576 ? `${(b / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(b / 1024))} KB`; }
+
   async function dosyaAnaliz(s, file) {
     ui.analiz = { songId: s.id, durum: 'Dosya çözülüyor…', oran: 0.02 };
     ui.mikHata = null;
@@ -959,6 +1082,12 @@
       if (ui.sesler[s.id]) { try { URL.revokeObjectURL(ui.sesler[s.id].url); } catch (e) { /* yok */ } }
       ui.sesler[s.id] = { url: URL.createObjectURL(file), ad: file.name };
       try { ac.close(); } catch (e) { /* yok */ }
+      // dosya uygulamada saklanır: Prova'da yeniden seçmek gerekmez
+      try {
+        await sesSakla(s.id, file);
+        s.sesDosyasi = { ad: file.name, boyut: file.size, tarih: Date.now() };
+        kaydet();
+      } catch (e) { toast('Dosya uygulamada saklanamadı (yer yetmiyor olabilir); analiz yine de yapılıyor.'); }
       await sesiAnalizEt(s, mono, ab.sampleRate, 'dosya', file.name);
     } catch (e) {
       try { ac && ac.close(); } catch (x) { /* yok */ }
@@ -1535,6 +1664,7 @@
       if (!onayli('sarki-' + el.dataset.id)) return;
       DB.songs = DB.songs.filter((x) => x.id !== el.dataset.id);
       DB.choreos = DB.choreos.filter((x) => x.songId !== el.dataset.id);
+      sesSil(el.dataset.id).catch(() => {});
       ui.sarkiDuzen = null;
       kaydet(); git('sarkilar'); toast('Şarkı silindi.');
     },
@@ -1545,6 +1675,29 @@
     },
     'sarki-duzen': (el) => { ui.sarkiDuzen = el.dataset.id; ciz(); },
     'sarki-duzen-bitti': () => { ui.sarkiDuzen = null; ciz(); toast('Kaydedildi.'); },
+    'ses-sil': (el) => {
+      if (!onayli('ses-' + el.dataset.id)) return;
+      const s = sarki(el.dataset.id);
+      sesSil(el.dataset.id).catch(() => {});
+      if (ui.sesler[el.dataset.id]) { try { URL.revokeObjectURL(ui.sesler[el.dataset.id].url); } catch (e) { /* yok */ } delete ui.sesler[el.dataset.id]; }
+      if (s) { delete s.sesDosyasi; kaydet(); }
+      ciz(); toast('Ses dosyası uygulamadan silindi; analiz ve koreografiler duruyor.');
+    },
+    'hazir-isaret': (el) => {
+      const c = DB.choreos.find((x) => x.id === el.dataset.id); if (!c) return;
+      c.hazir = !c.hazir; c.updatedAt = Date.now(); kaydet(); ciz();
+      toast(c.hazir ? `“${c.name}” hazır koreografilere eklendi (Koreografiler sekmesi).` : `“${c.name}” hazırlardan çıkarıldı.`);
+    },
+    'koreo-prova': (el) => {
+      const c = DB.choreos.find((x) => x.id === el.dataset.id); if (!c) return;
+      ui.secKoreo[c.songId] = c.id; ui.sekme[c.songId] = 'prova'; git('sarki-' + c.songId);
+    },
+    'koreo-ac': (el) => {
+      const c = DB.choreos.find((x) => x.id === el.dataset.id); if (!c) return;
+      ui.secKoreo[c.songId] = c.id; ui.sekme[c.songId] = 'koreo'; git('sarki-' + c.songId);
+    },
+    'koreo-metin-ac': (el) => { ui.metinAcik = ui.metinAcik === el.dataset.id ? null : el.dataset.id; ciz(); },
+    'koreo-metin-kopyala': (el) => { const p = $('#metin-' + el.dataset.id); kopyala(p && p.textContent, p); },
     'spotify-baglan': () => { spotifyGiris().catch((e) => toast('Spotify girişi açılamadı: ' + e.message)); },
     'spotify-kes': () => { if (!onayli('spotify-kes')) return; spotifyBaglantiyiKes(); ciz(); toast('Spotify bağlantısı kesildi.'); },
     'giris-kodu-kopyala': () => { const i = $('#giris-kodu-goster'); kopyala(i && i.value, i); },
@@ -1943,6 +2096,8 @@
 
   function sonraCiz() {
     spotifyGuncelle();
+    sesHazirla(aktifSarki());
+    if (ui.rota.gorunum === 'yedek') depoBilgisiCiz();
     const yap = $('#sp-yapistir');
     if (yap) {
       yap.addEventListener('paste', () => setTimeout(() => spotifyIleEkle(yap.value), 0));

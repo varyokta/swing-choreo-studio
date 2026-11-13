@@ -224,3 +224,10 @@ body.spotify-acik .toast { bottom: calc(124px + env(safe-area-inset-bottom, 0px)
 .sarki-arac { display: flex; gap: 6px; justify-content: flex-end; }
 .sarki-duzen { gap: 10px; }
 details.panel > summary { cursor: pointer; list-style-position: inside; }
+
+/* hazır koreografiler */
+.hazir-kart { gap: 10px; }
+.hazir-kart h3 { font-size: 1.1rem; }
+.hazir-kisa { padding: 6px 0; border-top: 1px solid var(--line); }
+.hazir-kisa:first-child { border-top: 0; }
+@media (max-width: 480px) { .gezinme { gap: 0; width: 100%; justify-content: space-between; flex-wrap: nowrap; } .gezinme a { padding: 6px 8px; font-size: 0.84rem; } }
