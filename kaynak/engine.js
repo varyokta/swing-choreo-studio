@@ -17,8 +17,14 @@ const SCS = (function () {
       id, name, start, length, lengthOptions: null, flexStart: false, travel, energy, level, character,
       accents: [], weightStart: 'any', weightEnd: 'any', mirror: false, sekizSerbest: true, kullan: true, bpmMin, bpmMax,
       desc, video: '', variations: '', kind: 'hareket', builtin: true,
+      vurguSayimlari: VARSAYILAN_VURGU[id] ? VARSAYILAN_VURGU[id].slice() : [],
     }, ek || {});
   }
+  // Hareketin vurguyu yaptığı dans sayımları (başlangıç önerisi; kullanıcı kütüphanede düzeltir)
+  const VARSAYILAN_VURGU = {
+    'stomps': [1], 'kick-ball-change': [8], 'boogie-drops': [1, 5], 'scissor-kicks': [1, 3],
+    'hallelujah': [1], 'knee-slaps': [1, 3], 'shimmy': [1], 'apple-jacks': [1, 5], 'charleston': [1, 5],
+  };
 
   function varsayilanHareketler() {
     return [
@@ -193,7 +199,26 @@ const SCS = (function () {
   }
   const keskinMi = (m) => m.character === 'vurgu' || m.character === 'keskin' || (m.accents || []).includes('vurgu');
 
-  function adayPuani(m, t, L, side, st, ctx, kopya) {
+  // Hareketin vurgu sayımları (dans sayımı olarak, ör. [5]) → hareketin başından itibaren vuruş farkları.
+  // 8'den uzun hareketlerde vurgu her 8 sayımda tekrar eder. on: 8'de hazırlıkla giriş (gövde 1 vuruş sonra).
+  function vurguOfsetleri(m, L, on) {
+    const acc = m && m.vurguSayimlari;
+    if (!acc || !acc.length) return [];
+    const govdeL = L - (on ? 1 : 0);
+    const out = [];
+    for (const a of acc) {
+      const o0 = m.flexStart ? Math.max(0, a - 1) : mod(a - m.start, 8);
+      for (let o = o0; o < govdeL - EPS; o += 8) out.push(o + (on ? 1 : 0));
+    }
+    return out;
+  }
+  // Bir öğenin müzikteki darbelerle (vurgu) denk gelen sayımları
+  function vurguDenkligi(it, m, song) {
+    const set = new Set((song.accents || []).map((a) => Math.round(a * 2)));
+    return vurguOfsetleri(m, it.L, it.on).map((o) => it.t + o).filter((b) => set.has(Math.round(b * 2)));
+  }
+
+  function adayPuani(m, t, L, side, st, ctx, kopya, on) {
     const { song, ayar } = ctx;
     let p = 0;
     const acc = m.accents || [];
@@ -228,11 +253,27 @@ const SCS = (function () {
       }
     }
     const son = t + L;
+    // Müzikteki darbeler (vurgular): hareketin kendi vurgu sayımı darbeye denk gelirse güçlü ödül.
+    // Darbe akıcı bir hareketin ortasına düşerse ceza (hareket müziği "kaçırır").
+    const ofs = m.kind === 'poz' ? [] : vurguOfsetleri(m, L, on);
+    const ofsSet = new Set(ofs.map((o) => Math.round((t + o) * 2)));
+    let denk = 0;
     for (const a of ctx.vurgular) {
       if (a < t - EPS || a >= son - EPS) continue;
-      if (yakin(a, t)) p += keskinMi(m) ? 1.2 : 0.1;
-      else if (m.character === 'akıcı' && L >= 4) p -= 0.7;
-      else if (keskinMi(m)) p += 0.5;
+      if (ofsSet.has(Math.round(a * 2))) { p += 1.8; denk++; }
+      else if (!ofs.length && yakin(a, t)) p += keskinMi(m) ? 1.0 : 0.1; // vurgu sayımı girilmemiş harekette eski kural
+      else if (m.character === 'akıcı' && L >= 4) p -= 0.9;
+      else if (!ofs.length && keskinMi(m)) p += 0.3;
+      else p -= 0.4;
+    }
+    // vurgu sayımı müzikte darbesiz bir yere düşüyorsa, yakında darbe varken hafif ceza (vurgu boşa gider)
+    if (ofs.length && !denk && ctx.vurgular.some((a) => a >= t - EPS && a < son - EPS)) p -= 0.3;
+    // enerji yükselişi/düşüşü: sekizlik başında enerji arttıysa keskin/enerjik giriş, düştüyse akıcı geçiş
+    const govdeBas = t + (on ? 1 : 0);
+    if (m.kind !== 'poz' && yakin(mod(govdeBas, 8), 0)) {
+      const blok = Math.round(govdeBas / 8);
+      if (ctx.yukselis && ctx.yukselis.has(blok)) p += (keskinMi(m) || m.energy >= 3) ? 0.7 : -0.2;
+      if (ctx.dusus && ctx.dusus.has(blok)) p += m.character === 'akıcı' || m.energy === 1 ? 0.5 : -0.2;
     }
     // vurgu müziğin bir sonraki sayımındaysa, akıcı hareketi orada bitirmek iyidir
     if (ctx.vurguSet.has(Math.round(son * 2)) && m.kind !== 'poz') p += 0.3;
@@ -316,7 +357,7 @@ const SCS = (function () {
         const ayak = st.agirlik !== 'any' && ws !== 'any' && ws !== st.agirlik;
         if (ayak && !elle) continue;
         const sorun = gecis || (ayak ? 'Ağırlık uymuyor.' : null);
-        out.push({ tur: 'hareket', m, t, L, side, on, bir, sorun, puan: adayPuani(m, t, L, side, st, ctx, false) + (ek || 0) });
+        out.push({ tur: 'hareket', m, t, L, side, on, bir, sorun, puan: adayPuani(m, t, L, side, st, ctx, false, on) + (ek || 0) });
       }
     };
     if (a === 'poz') {
@@ -370,7 +411,7 @@ const SCS = (function () {
     let toplam = 0, n = 0, ileri = 0;
     for (const y of yeni) {
       const m = ctx.bul(y.moveId); if (!m) return null;
-      toplam += adayPuani(m, y.t, y.L, y.side, st, ctx, true); n++;
+      toplam += adayPuani(m, y.t, y.L, y.side, st, ctx, true, y.on); n++;
       ileri += m.travel === 'ileri' ? 1 : m.travel === 'geri' ? -1 : 0;
     }
     let ceza = 0;
@@ -508,6 +549,12 @@ const SCS = (function () {
     ctx.vurgular = (song.accents || []).filter((a) => a >= aralik[0] && a < aralik[1]);
     ctx.vurguSet = new Set(ctx.vurgular.map((a) => Math.round(a * 2)));
     ctx.sonVurus = aralik[1];
+    // enerjinin bir önceki sekizliğe göre yükseldiği ve düştüğü sekizlikler
+    ctx.yukselis = new Set(); ctx.dusus = new Set();
+    for (let b = Math.floor(aralik[0] / 8) + 1; b * 8 < aralik[1]; b++) {
+      const fark = blokEnerji(song, b) - blokEnerji(song, b - 1);
+      if (fark > 0) ctx.yukselis.add(b); else if (fark < 0) ctx.dusus.add(b);
+    }
     return ctx;
   }
 
@@ -1260,7 +1307,7 @@ const SCS = (function () {
     EPS, mod, yakin, uid, varsayilanHareketler, KARAKTERLER, YONLER, VURGU_ETIKETLERI,
     sayim, baslangicEtiketi, sonVurus, baslangicUygun, sinirUygun, hazirlik, ayna, hizaPeriyodu,
     toplamVurus, bolumEtiketi, blokEnerji, breakAraliklari, aralikHesapla,
-    olustur, bolgeyiYenile, yerlestir, boslukOlustur, dogrula, blokParcasi, metinCikar, elleSecenekler, uyarilariDuzelt, sayimlariDuzelt, aile, beklenenSure, gecisSorunu,
+    olustur, bolgeyiYenile, yerlestir, boslukOlustur, dogrula, blokParcasi, metinCikar, elleSecenekler, vurguOfsetleri, vurguDenkligi, VARSAYILAN_VURGU, uyarilariDuzelt, sayimlariDuzelt, aile, beklenenSure, gecisSorunu,
     hareketSecenekleri, baglam, yeniDurum, durumaUygula,
     analizEt, turet, sayi,
   };

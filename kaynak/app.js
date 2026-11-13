@@ -28,6 +28,16 @@
     setTimeout(() => t.remove(), 2800);
   }
   function sureMetni(sn) { if (sn == null || isNaN(sn)) return ''; const m = Math.floor(sn / 60), s = Math.round(sn - m * 60); return `${m}:${String(s).padStart(2, '0')}`; }
+  // "1, 5" ya da "7&" gibi vurgu sayımlarını okur (1–8, yarım sayım "&" ile)
+  function vurguOku(v) {
+    const out = [];
+    for (const p of String(v || '').split(/[\s,;]+/).filter(Boolean)) {
+      const yarim = /&$/.test(p);
+      const n = parseFloat(p.replace('&', '').replace(',', '.'));
+      if (n >= 1 && n <= 8) out.push(n + (yarim ? 0.5 : 0));
+    }
+    return [...new Set(out)].sort((a, b) => a - b);
+  }
   function sureOku(v) {
     v = String(v).trim().replace(',', '.');
     if (!v) return null;
@@ -61,7 +71,7 @@
     try { localStorage.setItem(ANAHTAR, JSON.stringify(DB)); kayitOk = true; } catch (e) { kayitOk = false; }
   }
   function hareketNormal(m) {
-    const v = { lengthOptions: null, flexStart: false, accents: [], weightStart: 'any', weightEnd: 'any', mirror: false, sekizSerbest: true, kullan: true, bpmMin: 60, bpmMax: 300, desc: '', video: '', variations: '', kind: 'hareket', travel: 'yerinde', energy: 2, level: 1, character: 'groove', start: 1, length: 8 };
+    const v = { lengthOptions: null, flexStart: false, accents: [], vurguSayimlari: [], weightStart: 'any', weightEnd: 'any', mirror: false, sekizSerbest: true, kullan: true, bpmMin: 60, bpmMax: 300, desc: '', video: '', variations: '', kind: 'hareket', travel: 'yerinde', energy: 2, level: 1, character: 'groove', start: 1, length: 8 };
     for (const k in v) if (m[k] === undefined || m[k] === null && k !== 'lengthOptions') m[k] = v[k];
     return m;
   }
@@ -76,7 +86,11 @@
       DB.moves = DB.moves || [];
       for (const m of S.varsayilanHareketler()) if (!DB.moves.some((x) => x.id === m.id)) DB.moves.push(m);
     }
-    DB.version = 3;
+    // sürüm 4: hareketlerin vurgu sayımları (varsayılan hareketlere öneri; kullanıcı düzeltir)
+    if (!DB.version || DB.version < 4) {
+      for (const m of DB.moves || []) if (m.vurguSayimlari === undefined) m.vurguSayimlari = (S.VARSAYILAN_VURGU[m.id] || []).slice();
+    }
+    DB.version = 4;
     for (const k of ['moves', 'songs', 'choreos']) if (!Array.isArray(DB[k])) DB[k] = [];
     const sis = S.varsayilanHareketler();
     for (const id of ['poz', 'freeze']) if (!DB.moves.some((m) => m.id === id)) DB.moves.push(sis.find((m) => m.id === id));
@@ -239,26 +253,34 @@
       ${ui.girisKodu ? `<section class="panel not bilgi" style="gap:8px"><b>Spotify girişi burada tamamlanamadı</b>
         <p class="kucuk">iPhone girişi ayrı bir tarayıcı görünümünde açtı. Bu kodu kopyala, ana ekrandaki uygulamaya dön ve Şarkılar sayfasındaki "kodu yapıştır" alanına yapıştır (birkaç dakika geçerli).</p>
         <input id="giris-kodu-goster" readonly value="${esc(ui.girisKodu)}"><div><button class="btn kucuk ana" data-act="giris-kodu-kopyala">Kodu kopyala</button></div></section>` : ''}
-      <section class="panel" style="gap:10px">
-        ${SPOTIFY_VAR ? `<div id="calan-kart">${calanKartHtml()}</div>` : ''}
-        <div class="satir"><button class="btn ana" data-act="spotify-ekle">Spotify'dan ekle</button>
-          <span class="kucuk soluk">Spotify'da şarkıyı aç → Paylaş → Bağlantıyı kopyala, sonra bu düğmeye bas.</span></div>
-        ${ui.yapistirGoster ? `<label>Bağlantıyı buraya yapıştır<input id="sp-yapistir" placeholder="https://open.spotify.com/track/…" autocomplete="off"></label>
-          ${ui.yapistirHata ? `<p class="not uyari">${esc(ui.yapistirHata)}</p>` : '<p class="kucuk soluk">Uygulama panoyu okuyamadı; bağlantıyı buraya yapıştır, şarkı kendiliğinden eklenir.</p>'}` : ''}
+      <section class="panel" style="gap:12px">
+        <h2>Şarkı ekle</h2>
+        <div class="satir"><label class="btn ana" for="dosya-ekle" style="color:var(--surface)">Ses dosyasından ekle</label>
+          <input type="file" id="dosya-ekle" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac" hidden data-ch="dosya-ekle">
+          <span class="kucuk soluk">Telefondaki ya da bilgisayardaki şarkı dosyası (MP3, M4A, WAV…): şarkı eklenir ve analizi hemen başlar. Dosya cihazdan çıkmaz.</span></div>
+        <form data-form="yeni-sarki" class="yigin" style="gap:12px" autocomplete="off">
+          <p class="kucuk soluk">Ya da bilgileri yazarak ekle (tempoyu sonra şarkının sayfasında bulursun):</p>
+          <div class="izgara2"><label>Şarkı adı<input id="ys-ad" value="${esc(f.ad)}" required placeholder="ör. Night Train"></label><label>Sanatçı (bu kaydın)<input id="ys-sanatci" value="${esc(f.sanatci)}" placeholder="ör. Jonah Jones"></label></div>
+          <div class="izgara2"><label>Kayıt yılı<input id="ys-yil" value="${esc(f.yil)}" inputmode="numeric" placeholder="ör. 1958"></label><label>Albüm ya da versiyon notu<input id="ys-album" value="${esc(f.album)}" placeholder="ör. canlı kayıt"></label></div>
+          <label>Spotify şarkı bağlantısı (isteğe bağlı)<input id="ys-spotify" value="${esc(f.spotify)}" placeholder="https://open.spotify.com/track/…"></label>
+          ${ui.yeniUyari ? `<p class="not uyari">${ui.yeniUyari}</p>` : ''}
+          <div class="satir"><button class="btn" type="submit">${ui.yeniOnay ? 'Yine de ekle (farklı kayıt)' : 'Şarkıyı ekle'}</button>${ui.yeniOnay ? '<button class="btn" type="button" data-act="yeni-vazgec">Vazgeç</button>' : ''}</div>
+        </form>
       </section>
       <section class="yigin" style="gap:10px"><h2>Şarkılarım</h2>
-        ${satirlar ? `<div class="liste">${satirlar}</div>` : '<div class="panel bos-durum">Henüz şarkı yok. "Spotify\'dan ekle" ile ilk şarkını ekle.</div>'}
+        ${satirlar ? `<div class="liste">${satirlar}</div>` : '<div class="panel bos-durum">Henüz şarkı yok. Yukarıdan ilk şarkını ekle.</div>'}
       </section>
-      <details class="panel" ${ui.yeniUyari || ui.yeniForm ? 'open' : ''}>
-        <summary><b>Elle ekle</b> <span class="kucuk soluk">(Spotify bağlantısı olmadan ya da bilgileri kendin yazarak)</span></summary>
-        <form data-form="yeni-sarki" class="yigin" style="gap:12px;margin-top:12px" autocomplete="off">
-          <label>Spotify şarkı bağlantısı (isteğe bağlı)<input id="ys-spotify" value="${esc(f.spotify)}" placeholder="https://open.spotify.com/track/…"></label>
-          <div class="izgara2"><label>Şarkı adı<input id="ys-ad" value="${esc(f.ad)}" required placeholder="ör. The Flat Foot Floogie"></label><label>Sanatçı (bu kaydın)<input id="ys-sanatci" value="${esc(f.sanatci)}" required placeholder="ör. Slim &amp; Slam"></label></div>
-          <div class="izgara2"><label>Kayıt yılı<input id="ys-yil" value="${esc(f.yil)}" inputmode="numeric" placeholder="ör. 1938"></label><label>Albüm ya da versiyon notu<input id="ys-album" value="${esc(f.album)}" placeholder="ör. canlı kayıt, 1959 versiyonu"></label></div>
-          ${ui.yeniUyari ? `<p class="not uyari">${ui.yeniUyari}</p>` : ''}
-          <div class="satir"><button class="btn ana" type="submit">${ui.yeniOnay ? 'Yine de ekle (farklı kayıt)' : 'Şarkıyı ekle'}</button>${ui.yeniOnay ? '<button class="btn" type="button" data-act="yeni-vazgec">Vazgeç</button>' : ''}</div>
-        </form>
-      </details></div>`;
+      ${SPOTIFY_VAR ? `<details class="panel" ${ui.yapistirGoster || bekleyenGiris() || (bagli() && HS.calan) ? 'open' : ''}>
+        <summary><b>Spotify ile ekle</b> <span class="kucuk soluk">(isteğe bağlı)</span></summary>
+        <div class="yigin" style="gap:10px;margin-top:10px">
+          <div id="calan-kart">${calanKartHtml()}</div>
+          <div class="satir"><button class="btn kucuk" data-act="spotify-ekle">Kopyalanan Spotify bağlantısından ekle</button></div>
+          ${ui.yapistirGoster ? `<label>Bağlantıyı buraya yapıştır<input id="sp-yapistir" placeholder="https://open.spotify.com/track/…" autocomplete="off"></label>
+            ${ui.yapistirHata ? `<p class="not uyari">${esc(ui.yapistirHata)}</p>` : '<p class="kucuk soluk">Uygulama panoyu okuyamadı; bağlantıyı buraya yapıştır.</p>'}` : ''}
+          <p class="kucuk soluk">Spotify şarkının sesini vermez: Spotify'dan eklenen şarkıda analiz için dosya yükle ya da "Dinlerken işaretle"yi kullan.</p>
+        </div>
+      </details>` : ''}</div>`;
+
   }
   function yeniSarki(v) {
     return Object.assign({ id: S.uid('s'), title: '', artist: '', year: '', album: '', spotifyId: null, bpm: null, bpmOlcum: null, bpmKaynak: null, bpmSources: [], durationSec: null, firstOneSec: 0, beats: null, originIdx: null, energy: [], breaks: [], accents: [], sections: [], createdAt: Date.now(), updatedAt: Date.now() }, v);
@@ -603,6 +625,8 @@
       if (it.bir) notlar.push("8'ini sonraki harekete bırakır");
       if (it.moveId === 'freeze') notlar.push('müzikteki break');
       if (it.t < c.range[0]) notlar.push("girişin son sayımında başlar");
+      const denk = m ? S.vurguDenkligi(it, m, s) : [];
+      if (denk.length) notlar.push(`vurgu müzikteki darbeye denk (${denk.map((b) => S.sayim(b).etiket).join(', ')})`);
       alt = notlar.join(' · ');
     }
     let araclar = '';
@@ -737,6 +761,7 @@
           ${m.kind === 'poz' ? '' : `<label class="yan"><input type="checkbox" data-ch="hizli-kullan" data-id="${m.id}" ${m.kullan !== false ? 'checked' : ''}> Otomatik koreografide kullan</label>`}
           ${m.flexStart ? '' : `<label class="yan">Başlangıç <select data-ch="hizli-sayim" data-id="${m.id}" data-k="start" style="width:auto;padding:4px 8px">${baslangicSecenekleri(m.start)}</select></label>
           <label class="yan">Süre <select data-ch="hizli-sayim" data-id="${m.id}" data-k="length" style="width:auto;padding:4px 8px">${sureSecenekleri(m.length)}</select> sayım</label>`}
+          ${m.kind === 'poz' ? '' : `<label class="yan">Vurgu <input data-ch="hizli-vurgu" data-id="${m.id}" value="${esc((m.vurguSayimlari || []).map(sayi).join(', '))}" placeholder="ör. 5" style="width:7em;padding:4px 8px"></label>`}
         </div>
         <div class="bilgi">
           <span class="cip teal mono">${m.flexStart ? 'her sayımda' : 'başlar ' + S.baslangicEtiketi(m.start)} · ${uz} sayım</span>
@@ -802,6 +827,8 @@
           <label>Başlarken ağırlık${sec('hf-ag1', v.weightStart, AGIRLIK)}</label>
           <label>Bitişte ağırlık${sec('hf-ag2', v.weightEnd, AGIRLIK)}</label>
         </div>
+        <label>Vurgu sayımları (hareketin vurduğu dans sayımları; ör. "5" ya da "1, 5")<input id="hf-vurgu-sayim" value="${esc((v.vurguSayimlari || []).map(sayi).join(', '))}" placeholder="ör. 5"></label>
+        <p class="ipucu">Koreografi, hareketin vurgusunu müzikteki darbeyle (Müzik haritasındaki vurgu işaretleri) aynı sayıma denk getirmeye çalışır. Boş bırakırsan hareketin vurgusu yok sayılır.</p>
         <label class="yan"><input type="checkbox" id="hf-kullan" ${v.kullan !== false ? 'checked' : ''}> Otomatik koreografide kullan (kapalıysa kütüphanede kalır, otomatik koreografiye girmez; elle eklenebilir)</label>
         <label class="yan"><input type="checkbox" id="hf-ayna" ${v.mirror ? 'checked' : ''}> Aynalanabilir (sağa ve sola yapılır; ağırlıklar sol yönde yer değiştirir)</label>
         <p class="ipucu">Yukarıdaki ağırlıklar hareketin sağ (sağa) yönü içindir. "Fark etmez" bırakırsan geçişlerde kontrol yapılmaz.</p>
@@ -1701,6 +1728,19 @@
       s.updatedAt = Date.now(); kaydet(); ciz();
     },
     'ses-dosya': (el) => { const s = aktifSarki(); const f = el.files && el.files[0]; if (f) dosyaAnaliz(s, f); el.value = ''; },
+    // Ses dosyasından yeni şarkı: ad (ve "Sanatçı - Ad" biçimindeyse sanatçı) dosya adından, analiz hemen başlar
+    'dosya-ekle': (el) => {
+      const f = el.files && el.files[0]; el.value = '';
+      if (!f) return;
+      const ham = f.name.replace(/\.[a-z0-9]{2,5}$/i, '').replace(/_/g, ' ').replace(/^\d{1,3}[\s.\-]+/, '').trim();
+      const parca = ham.split(/\s+[-–]\s+/);
+      const v = parca.length >= 2 ? { artist: parca[0].trim(), title: parca.slice(1).join(' - ').trim() } : { artist: '', title: ham };
+      const s = yeniSarki({ title: v.title || 'Yeni şarkı', artist: v.artist });
+      DB.songs.push(s); kaydet();
+      ui.sekme[s.id] = 'tempo';
+      git('sarki-' + s.id);
+      dosyaAnaliz(s, f);
+    },
     bolum: (el) => {
       const s = aktifSarki(); const b = +el.dataset.c * 32;
       s.sections = (s.sections || []).filter((x) => x.beat !== b);
@@ -1733,6 +1773,12 @@
     },
     'pr-bas': (el) => { const s = aktifSarki(); ui.prBas[s.id] = +el.value; takipDurdur(); const c = aktifKoreo(s); yaz('pr-simdi', esc(ilkHareketAdi(c, +el.value * 8))); },
     metronom: (el) => { ui.metronom = el.checked; if (el.checked && !T.ac) { try { T.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* yok */ } } },
+    'hizli-vurgu': (el) => {
+      const m = hareket(el.dataset.id); if (!m) return;
+      m.vurguSayimlari = vurguOku(el.value);
+      kaydet();
+      toast(m.vurguSayimlari.length ? `${m.name}: vurgu sayımı ${m.vurguSayimlari.map(sayi).join(', ')}.` : `${m.name}: vurgu sayımı kaldırıldı.`);
+    },
     'hizli-kullan': (el) => {
       const m = hareket(el.dataset.id); if (!m) return;
       m.kullan = el.checked;
@@ -1856,7 +1902,7 @@
       flexStart: g('hf-esnek').checked, energy: +g('hf-enerji').value, level: +g('hf-seviye').value,
       character: g('hf-karakter').value, travel: g('hf-yon').value, bpmMin: b1, bpmMax: b2,
       accents: [...document.querySelectorAll('input[name="hf-vurgu"]:checked')].map((x) => x.value),
-      weightStart: g('hf-ag1').value, weightEnd: g('hf-ag2').value, mirror: g('hf-ayna').checked, sekizSerbest: g('hf-serbest').checked, kullan: g('hf-kullan').checked,
+      weightStart: g('hf-ag1').value, weightEnd: g('hf-ag2').value, mirror: g('hf-ayna').checked, sekizSerbest: g('hf-serbest').checked, kullan: g('hf-kullan').checked, vurguSayimlari: vurguOku(g('hf-vurgu-sayim').value),
       desc: g('hf-aciklama').value.trim(), variations: g('hf-varyasyon').value.trim(), video,
     });
     if (yeni) DB.moves.push(m);
@@ -1872,7 +1918,7 @@
       ui.yeniForm = v;
       const sid = v.spotify ? spotifyId(v.spotify) : null;
       if (v.spotify && !sid) { ui.yeniUyari = 'Bu bir Spotify şarkı bağlantısı değil. Bağlantı open.spotify.com/track/… biçiminde olmalı (albüm ya da çalma listesi değil).'; ui.yeniOnay = false; ciz(); return; }
-      if (!v.ad || !v.sanatci) { ui.yeniUyari = 'Şarkı adı ve sanatçı gerekli.'; ciz(); return; }
+      if (!v.ad) { ui.yeniUyari = 'Şarkı adı gerekli.'; ciz(); return; }
       if (sid) { const ayni = DB.songs.find((s) => s.spotifyId === sid); if (ayni) { ui.yeniUyari = `Bu Spotify kaydı zaten ekli: “${esc(ayni.title)}”, ${esc(ayni.artist)}.`; ui.yeniOnay = false; ciz(); return; } }
       const norm = (x) => String(x || '').toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
       const benzer = DB.songs.filter((s) => norm(s.title) === norm(v.ad));

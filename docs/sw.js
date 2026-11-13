@@ -1,6 +1,6 @@
 // Çevrimdışı çalışma: uygulama dosyaları önbelleğe alınır.
 // Önce ağ denenir (yeni sürüm gelsin), ağ yoksa önbellekten açılır.
-const SURUM = 'choreo-20261114020658';
+const SURUM = 'choreo-20261114023054';
 const DOSYALAR = ['./', './index.html', './manifest.webmanifest', './simgeler/simge-180.png', './simgeler/simge-192.png', './simgeler/simge-512.png'];
 
 self.addEventListener('install', (e) => {
