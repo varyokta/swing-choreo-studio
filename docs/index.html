@@ -1756,7 +1756,11 @@ const SCS = (function () {
       </div>`;
     }).join('');
     return `<div class="yigin">
+      ${ui.girisKodu ? `<section class="panel not bilgi" style="gap:8px"><b>Spotify girişi burada tamamlanamadı</b>
+        <p class="kucuk">iPhone girişi ayrı bir tarayıcı görünümünde açtı. Bu kodu kopyala, ana ekrandaki uygulamaya dön ve Şarkılar sayfasındaki "kodu yapıştır" alanına yapıştır (birkaç dakika geçerli).</p>
+        <input id="giris-kodu-goster" readonly value="${esc(ui.girisKodu)}"><div><button class="btn kucuk ana" data-act="giris-kodu-kopyala">Kodu kopyala</button></div></section>` : ''}
       <section class="panel" style="gap:10px">
+        ${SPOTIFY_VAR ? `<div id="calan-kart">${calanKartHtml()}</div>` : ''}
         <div class="satir"><button class="btn ana" data-act="spotify-ekle">Spotify'dan ekle</button>
           <span class="kucuk soluk">Spotify'da şarkıyı aç → Paylaş → Bağlantıyı kopyala, sonra bu düğmeye bas.</span></div>
         ${ui.yapistirGoster ? `<label>Bağlantıyı buraya yapıştır<input id="sp-yapistir" placeholder="https://open.spotify.com/track/…" autocomplete="off"></label>
@@ -1877,6 +1881,15 @@ const SCS = (function () {
           </form>
         </section>
       </div>
+
+      ${SPOTIFY_VAR && s.spotifyId ? `<section class="panel" style="gap:10px">
+        <h3>Dinlerken işaretle</h3>
+        <p class="ipucu">Bu şarkı Spotify'da çalarken dokun; her dokunuş şarkının Spotify'daki saniyesine yazılır, şarkının farklı yerlerinde parça parça yapabilirsin. Vuruşlara "Vuruş"a dokun (en az 8), sonra "Bulunan tempoyu kullan". Dansın ilk 1'inde "1"e, müzik durduğunda "Break"e, güçlü darbede "Vurgu"ya dokun.${bagli() ? '' : ' (Spotify\'a bağlı değilsen sadece alttaki önizleme oynatıcısının çaldığı 30 saniyede çalışır.)'}</p>
+        <div id="isaret-durum" class="kucuk mono">${esc(isaretDurumu(s))}</div>
+        <button class="dokun" data-isaret="vurus">Vuruş</button>
+        <div class="izgara3"><button class="btn" data-isaret="bir">1</button><button class="btn" data-isaret="break">Break</button><button class="btn" data-isaret="vurgu">Vurgu</button></div>
+        <div class="satir"><button class="btn kucuk ana" data-act="isaret-tempo">Bulunan tempoyu kullan</button>${silDugme('isaret-' + s.id, 'isaret-sifirla', `data-id="${s.id}"`, 'Vuruş dokunuşlarını sil')}</div>
+      </section>` : ''}
 
       <section class="panel">
         <div class="yigin" style="gap:6px"><h3>Sesten analiz</h3>
@@ -2180,7 +2193,7 @@ const SCS = (function () {
           <p class="ipucu">Dosyayı çal: sayım, analizde bulunan vuruşlara kilitli ilerler. İleri-geri sardığında sayım da gelir.</p></div>` : ''}
         <div class="yigin" style="gap:8px">
           ${SPOTIFY_VAR && s.spotifyId ? `<h3>${ses ? 'Ya da Spotify ile' : 'Spotify ile prova'}</h3>
-          <p class="ipucu">Alttaki Spotify oynatıcısında çal: sayım şarkının çalan anına kilitli, ileri sarınca sayım da gelir, durdurunca durur. Sayım müziğe oturmuyorsa şarkı seçili sekizliğin 1'ine geldiği anda aşağıdaki düğmeye dokun; bu ayar şarkıya kaydedilir.${s.spotifyKayma ? ` (Kayıtlı ayar: ${sayi(s.spotifyKayma)} sn)` : ''}</p>
+          <p class="ipucu">${bagli() ? 'Telefondaki Spotify\'da bu şarkıyı çal (ya da alttaki şeritten başlat)' : 'Alttaki Spotify oynatıcısında çal'}: sayım şarkının çalan anına kilitli, ileri sarınca sayım da gelir, durdurunca durur. Sayım müziğe oturmuyorsa şarkı seçili sekizliğin 1'ine geldiği anda aşağıdaki düğmeye dokun; bu ayar şarkıya kaydedilir.${s.spotifyKayma ? ` (Kayıtlı ayar: ${sayi(s.spotifyKayma)} sn)` : ''}</p>
           <label class="yan kucuk">Başlangıç <select id="pr-bas" data-ch="pr-bas" style="width:auto">${Array.from({ length: blokB - blokA }, (_, i) => `<option value="${blokA + i}" ${blokA + i === bas ? 'selected' : ''}>${blokA + i + 1}. sekizlik</option>`).join('')}</select></label>
           <button class="dokun" data-act="sp-ilk1" style="min-height:84px">Şu an seçili sekizliğin 1'i</button>
           <p class="kucuk soluk">Spotify oynatıcısı olmadan, elle başlatmak için: şarkı seçili sekizliğin 1'ine gelince aşağıdaki "elle" düğmesine dokun.</p>
@@ -2352,6 +2365,7 @@ const SCS = (function () {
         <h2>Bu cihazda</h2>
         <p class="ipucu">Uygulama kendi adresinde çalışıyor: internetsiz de açılır, mikrofonla dinleme kullanılabilir. iPhone'da Safari'nin Paylaş menüsünden "Ana Ekrana Ekle" ile uygulama gibi kurulur. Veriler bu cihazda saklanır; başka cihaza aktarmak için yedek al.</p>
         <p class="kucuk soluk">${kaliciDepo === true ? 'Tarayıcı verileri kalıcı olarak saklamayı onayladı.' : kaliciDepo === false ? 'Tarayıcı kalıcı saklamayı onaylamadı; düzenli yedek al.' : ''}</p>
+        <div class="satir">${bagli() ? `<span class="kucuk">Spotify'a bağlı.</span>${silDugme('spotify-kes', 'spotify-kes', '', 'Spotify bağlantısını kes')}` : '<button class="btn kucuk" data-act="spotify-baglan">Spotify\'a bağlan</button>'}</div>
       </section>`}
     </div>`;
   }
@@ -2634,7 +2648,7 @@ const SCS = (function () {
       k = document.createElement('div');
       k.id = 'spotify-cubuk';
       k.hidden = true;
-      k.innerHTML = '<div class="sc-ic"><div id="spotify-yer"></div><p id="spotify-not"></p></div>';
+      k.innerHTML = '<div class="sc-ic"><div id="sc-api" hidden></div><div id="spotify-yer"></div><p id="spotify-not"></p></div>';
       document.body.appendChild(k);
     }
     return k;
@@ -2650,6 +2664,18 @@ const SCS = (function () {
     k.hidden = !goster;
     document.body.classList.toggle('spotify-acik', goster);
     if (!goster) { if (SP.ctrl && !SP.durdu) { try { SP.ctrl.pause(); } catch (e) { /* yok */ } } return; }
+    // Spotify hesabına bağlıysa gömülü önizleme oynatıcısı yerine telefondaki Spotify'ı izleyen şerit
+    const apiYer = $('#sc-api'), gomulu = k.querySelector('iframe') || $('#spotify-yer');
+    if (bagli()) {
+      if (gomulu) gomulu.style.display = 'none';
+      if (SP.ctrl && SP.kaynak === 'embed' && !SP.durdu) { try { SP.ctrl.pause(); } catch (e) { /* yok */ } }
+      if (apiYer) { apiYer.hidden = false; apiYer.innerHTML = seritHtml(s); }
+      if (SP.songId !== s.id) { SP.songId = s.id; SP.pos = 0; SP.dur = 0; SP.durdu = true; SP.kaynak = 'hesap'; }
+      spotifyNot('Telefondaki Spotify izleniyor: bu şarkı orada çalınca sayım ve işaretler şarkının saniyesine oturur.');
+      return;
+    }
+    if (apiYer) apiYer.hidden = true;
+    if (gomulu) gomulu.style.display = '';
     SP.songId = s.id;
     const uri = 'spotify:track:' + s.spotifyId;
     if (SP.uri === uri) return;
@@ -2664,7 +2690,7 @@ const SCS = (function () {
         SP.ctrl = ctrl;
         if (SP.uri !== uri) ctrl.loadUri(SP.uri); // yüklenirken şarkı değiştiyse
         ctrl.addListener('ready', () => spotifyNot('Çal: Prova sekmesinde sayım bu oynatıcının çaldığı ana kilitlenir.'));
-        ctrl.addListener('playback_update', (e) => spotifyOlay(e.data || {}));
+        ctrl.addListener('playback_update', (e) => { if (bagli()) return; SP.kaynak = 'embed'; spotifyOlay(e.data || {}); });
       });
     }).catch(() => spotifyNot('Spotify oynatıcısı yüklenemedi; internet bağlantısını kontrol et. Şarkıyı "Spotify\'da aç" ile açabilirsin.'));
   }
@@ -2681,8 +2707,9 @@ const SCS = (function () {
       const kayit = M.toplam / M.sr + (performance.now() - M.sonParca) / 1000;
       M.spotifyCiftleri.push({ kayit, spotify: SP.pos });
     }
-    const onizleme = SP.dur > 0 && SP.dur <= 31;
-    if (onizleme) spotifyNot('Spotify sadece 30 saniyelik önizleme çalıyor: bu tarayıcıda Spotify hesabına giriş yapılmamış görünüyor. Safari\'de open.spotify.com\'a giriş yapıp sayfayı yeniden aç.');
+    const onizleme = SP.kaynak !== 'hesap' && SP.dur > 0 && SP.dur <= 31;
+    if (SP.kaynak === 'hesap') { /* şerit kendi yazısını gösterir */ }
+    else if (onizleme) spotifyNot('Spotify sadece 30 saniyelik önizleme çalıyor: bu tarayıcıda Spotify hesabına giriş yapılmamış görünüyor. Safari\'de open.spotify.com\'a giriş yapıp sayfayı yeniden aç.');
     else if (SP.dur > 31) spotifyNot('Sayım bu oynatıcının çaldığı ana kilitli (Prova sekmesi).');
     // şarkının süresi bilinmiyorsa Spotify'dan al (koreografi uzunluğu için)
     if (!onizleme && SP.dur > 31 && !s.durationSec && !s.beats) { s.durationSec = Math.round(SP.dur * 10) / 10; s.updatedAt = Date.now(); kaydet(); }
@@ -2694,6 +2721,275 @@ const SCS = (function () {
       const c = aktifKoreo(s), sy = $('#pr-sayac');
       if (c && sy) cizTakip(s, c, vurusKonumu(s), sy);
     }
+  }
+
+  // ---------------- Spotify hesabı (Web API; giriş PKCE ile, şifre bize gelmez) ----------------
+  // Telefondaki Spotify'da çalan şarkıyı ve saniyesini okur; Premium hesapta çal/durdur/sar.
+  // Spotify sesi vermez: analiz için "Dinlerken işaretle", mikrofon (başka cihazdan çalarak) ya da dosya.
+  const SPOTIFY_CLIENT_ID = '467cc7d466b74f508222e97fbf307c3f';
+  const SPOTIFY_KAPSAM = 'user-read-playback-state user-read-currently-playing user-modify-playback-state';
+  const HESAP_ANAHTAR = 'swing-choreo-studio.spotify';
+  const HS = { token: null, yenile: null, bitis: 0, zamanlayici: null, hata: null, calan: null, sayac: null };
+  function donusAdresi() { return location.origin + location.pathname.replace(/index\.html$/, ''); }
+  function hesapYukle() {
+    try { const v = JSON.parse(localStorage.getItem(HESAP_ANAHTAR) || 'null'); if (v) { HS.token = v.token; HS.yenile = v.yenile; HS.bitis = v.bitis || 0; } } catch (e) { /* yok */ }
+  }
+  function hesapKaydet() {
+    try { localStorage.setItem(HESAP_ANAHTAR, JSON.stringify({ token: HS.token, yenile: HS.yenile, bitis: HS.bitis })); } catch (e) { /* yok */ }
+  }
+  const bagli = () => !!(SPOTIFY_VAR && HS.yenile);
+  function bekleyenGiris() { try { return JSON.parse(localStorage.getItem(HESAP_ANAHTAR + '.bekleyen') || 'null'); } catch (e) { return null; } }
+  function rastgele(n) { const a = new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a, (b) => ('0' + b.toString(16)).slice(-2)).join(''); }
+  async function sha256b64url(s) {
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  async function spotifyGiris() {
+    const dogrulayici = rastgele(48), durum = rastgele(12);
+    try { localStorage.setItem(HESAP_ANAHTAR + '.bekleyen', JSON.stringify({ dogrulayici, durum, t: Date.now() })); } catch (e) { /* yok */ }
+    const p = new URLSearchParams({
+      response_type: 'code', client_id: SPOTIFY_CLIENT_ID, scope: SPOTIFY_KAPSAM, redirect_uri: donusAdresi(),
+      state: durum, code_challenge_method: 'S256', code_challenge: await sha256b64url(dogrulayici),
+    });
+    location.assign('https://accounts.spotify.com/authorize?' + p.toString());
+  }
+  async function tokenIste(govde) {
+    const r = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(Object.assign({ client_id: SPOTIFY_CLIENT_ID }, govde)),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.access_token) { const e = new Error(j.error_description || j.error || ('HTTP ' + r.status)); e.kod = j.error; throw e; }
+    HS.token = j.access_token;
+    HS.bitis = Date.now() + (j.expires_in || 3600) * 1000 - 60000;
+    if (j.refresh_token) HS.yenile = j.refresh_token;
+    hesapKaydet();
+  }
+  async function kodDegistir(kod) {
+    const b = bekleyenGiris();
+    if (!b) throw new Error('Bu cihazda başlatılmış bir giriş yok; "Spotify\'a bağlan"a yeniden bas.');
+    await tokenIste({ grant_type: 'authorization_code', code: kod, redirect_uri: donusAdresi(), code_verifier: b.dogrulayici });
+    try { localStorage.removeItem(HESAP_ANAHTAR + '.bekleyen'); } catch (e) { /* yok */ }
+  }
+  // Spotify girişten dönünce adres ?code=…&state=… taşır
+  async function girisDonusu() {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('code') && !q.has('error')) return;
+    const kod = q.get('code'), durum = q.get('state');
+    try { history.replaceState(null, '', donusAdresi() + location.hash); } catch (e) { /* yok */ }
+    if (q.has('error')) { toast('Spotify girişi iptal edildi.'); return; }
+    const b = bekleyenGiris();
+    if (b && b.durum === durum) {
+      try { await kodDegistir(kod); toast('Spotify\'a bağlandı.'); calanIzle(); }
+      catch (e) { toast('Spotify girişi tamamlanamadı: ' + e.message); }
+      ciz();
+    } else {
+      // giriş başka bir pencerede döndü (iPhone'da ana ekran uygulaması ayrı tarayıcı görünümü açabilir):
+      // kod ana ekrandaki uygulamaya elle taşınır
+      ui.girisKodu = kod;
+      ui.rota = { gorunum: 'sarkilar' };
+      ciz();
+    }
+  }
+  function spotifyBaglantiyiKes() {
+    clearTimeout(HS.zamanlayici);
+    HS.token = null; HS.yenile = null; HS.bitis = 0; HS.calan = null;
+    try { localStorage.removeItem(HESAP_ANAHTAR); } catch (e) { /* yok */ }
+  }
+  async function erisim() {
+    if (!HS.yenile) throw new Error('Spotify\'a bağlı değil.');
+    if (!HS.token || Date.now() > HS.bitis) {
+      try { await tokenIste({ grant_type: 'refresh_token', refresh_token: HS.yenile }); }
+      catch (e) { if (e.kod === 'invalid_grant') { spotifyBaglantiyiKes(); ciz(); toast('Spotify bağlantısının süresi doldu; yeniden bağlan.'); } throw e; }
+    }
+    return HS.token;
+  }
+  async function api(yol, secenek) {
+    const t = await erisim();
+    const s = Object.assign({}, secenek || {});
+    s.headers = Object.assign({ Authorization: 'Bearer ' + t }, s.headers || {});
+    const r = await fetch('https://api.spotify.com/v1' + yol, s);
+    if (r.status === 401) { HS.token = null; throw new Error('Spotify yetkisi yenileniyor, tekrar dene.'); }
+    if (r.status === 204 || r.status === 202) return null;
+    const tx = await r.text();
+    let j = null; try { j = tx ? JSON.parse(tx) : null; } catch (e) { j = null; }
+    if (!r.ok) {
+      const e = new Error((j && j.error && j.error.message) || ('HTTP ' + r.status));
+      e.durum = r.status; e.neden = j && j.error && j.error.reason; throw e;
+    }
+    return j;
+  }
+  // Çalan şarkıyı düzenli sor (sayfa görünürken). Şarkı sayfasında daha sık.
+  function calanIzle() {
+    clearTimeout(HS.zamanlayici);
+    if (!bagli()) return;
+    const tur = async () => {
+      if (document.visibilityState === 'visible') {
+        const t0 = performance.now();
+        try {
+          const d = await api('/me/player/currently-playing');
+          calanGuncelle(d, (performance.now() - t0) / 1000);
+          HS.hata = null;
+        } catch (e) { HS.hata = e.message; calanSeridiCiz(); }
+      }
+      if (!bagli()) return;
+      const sik = ui.rota.gorunum === 'sarki';
+      HS.zamanlayici = setTimeout(tur, sik ? 1200 : 3000);
+    };
+    tur();
+  }
+  function calanGuncelle(d, rtt) {
+    if (!d || !d.item || d.item.type !== 'track') HS.calan = null;
+    else {
+      const it = d.item;
+      HS.calan = {
+        id: it.id, ad: it.name, sanatci: (it.artists || []).map((a) => a.name).join(', '),
+        album: it.album ? it.album.name : '', yil: ((it.album && it.album.release_date) || '').slice(0, 4),
+        sure: (it.duration_ms || 0) / 1000, pos: (d.progress_ms || 0) / 1000 + (d.is_playing ? rtt / 2 : 0),
+        caliyor: !!d.is_playing, t: performance.now(),
+      };
+    }
+    // açık şarkı Spotify'da çalıyorsa sayaç zamanı buradan
+    const s = aktifSarki();
+    const C = HS.calan;
+    if (s && s.spotifyId) {
+      if (C && C.id === s.spotifyId) {
+        const tahmin = SP.songId === s.id && !SP.durdu ? spotifyZamani() : null;
+        // küçük farklarda kaydırma yok: sayım titremesin
+        const pos = tahmin != null && C.caliyor && Math.abs(tahmin - C.pos) < 0.25 ? tahmin : C.pos;
+        SP.songId = s.id; SP.kaynak = 'hesap';
+        spotifyOlay({ position: pos * 1000, duration: C.sure * 1000, isPaused: !C.caliyor });
+      } else if (SP.songId === s.id && SP.kaynak === 'hesap' && !SP.durdu) {
+        spotifyOlay({ position: spotifyZamani() * 1000, duration: SP.dur * 1000, isPaused: true });
+      }
+    }
+    calanSeridiCiz();
+  }
+  function calanSimdi() { const C = HS.calan; return C ? C.pos + (C.caliyor ? (performance.now() - C.t) / 1000 : 0) : 0; }
+  // Şarkılar sayfasındaki "Spotify'da çalıyor" kartı ve şarkı sayfasının alt şeridi
+  function calanKartHtml() {
+    if (!SPOTIFY_VAR) return '';
+    if (!bagli()) {
+      const b = bekleyenGiris();
+      return `<div class="satir"><button class="btn" data-act="spotify-baglan">Spotify'a bağlan</button>
+        <span class="kucuk soluk">Bağlanınca telefondaki Spotify'da çalan şarkı tek dokunuşla eklenir, sayaç Spotify'ın çaldığı yeri izler. Premium gerekir.</span></div>
+        ${b ? `<label class="kucuk">Giriş tarayıcıda kaldıysa oradaki kodu buraya yapıştır<input id="giris-kodu" placeholder="kod" autocomplete="off"></label>` : ''}`;
+    }
+    const C = HS.calan;
+    if (HS.hata && !C) return `<p class="kucuk soluk">Spotify: ${esc(HS.hata)}</p>`;
+    if (!C) return '<p class="kucuk soluk">Spotify\'a bağlı. Telefondaki Spotify\'da bir şarkı çaldığında burada görünür.</p>';
+    const varOlan = DB.songs.find((x) => x.spotifyId === C.id);
+    return `<div class="satir ara"><div style="min-width:0"><div class="kucuk soluk">Spotify'da ${C.caliyor ? 'çalıyor' : 'duraklatıldı'}</div>
+      <b>${esc(C.ad)}</b> <span class="soluk">${esc(C.sanatci)}</span></div>
+      ${varOlan ? `<button class="btn kucuk" data-act="git" data-h="sarki-${varOlan.id}">Aç</button>` : '<button class="btn ana kucuk" data-act="calan-ekle">Ekle</button>'}</div>`;
+  }
+  function seritHtml(s) {
+    const C = HS.calan;
+    const ayni = C && C.id === s.spotifyId;
+    if (HS.hata && !C) return `<div class="satir ara"><span class="kucuk">Spotify: ${esc(HS.hata)}</span></div>`;
+    if (ayni) {
+      return `<div class="satir ara"><span class="mono" id="sc-zaman">${sureMetni(calanSimdi())} / ${sureMetni(C.sure)}</span>
+        <span class="satir"><button class="btn kucuk" data-act="sp-sar" data-d="-5">−5 sn</button>
+        <button class="btn kucuk ana" data-act="sp-durdur-devam">${C.caliyor ? 'Durdur' : 'Çal'}</button>
+        <button class="btn kucuk" data-act="sp-sar" data-d="5">+5 sn</button></span></div>`;
+    }
+    return `<div class="satir ara"><span class="kucuk" style="min-width:0">${C ? `Spotify'da başka şarkı: ${esc(C.ad)}` : 'Spotify\'da şu an bir şey çalmıyor.'}</span>
+      <button class="btn kucuk ana" data-act="sp-cal">Bu şarkıyı Spotify'da çal</button></div>`;
+  }
+  function calanSeridiCiz() {
+    const kart = $('#calan-kart');
+    if (kart) kart.innerHTML = calanKartHtml();
+    const yer = $('#sc-api');
+    const s = aktifSarki();
+    if (yer && s && s.spotifyId && bagli()) yer.innerHTML = seritHtml(s);
+  }
+  async function spotifyKomut(yol, yontem, govde) {
+    try {
+      await api(yol, { method: yontem, headers: govde ? { 'Content-Type': 'application/json' } : {}, body: govde ? JSON.stringify(govde) : undefined });
+      setTimeout(calanIzle, 350);
+    } catch (e) {
+      if (e.durum === 404 || e.neden === 'NO_ACTIVE_DEVICE') toast('Spotify\'da etkin cihaz yok: telefonda Spotify\'ı açıp bir şarkı başlat, sonra tekrar dene.');
+      else if (e.durum === 403) toast('Spotify bu komuta izin vermedi (Premium gerekir ya da cihaz uzaktan kontrolü kapalı).');
+      else toast('Spotify: ' + e.message);
+    }
+  }
+  function calaniEkle() {
+    const C = HS.calan;
+    if (!C) return;
+    const varOlan = DB.songs.find((x) => x.spotifyId === C.id);
+    if (varOlan) { git('sarki-' + varOlan.id); return; }
+    const s = yeniSarki({ spotifyId: C.id, title: C.ad, artist: C.sanatci, album: C.album, year: C.yil, durationSec: Math.round(C.sure * 10) / 10 });
+    DB.songs.push(s); kaydet();
+    toast(`“${C.ad}” eklendi.`);
+    git('sarki-' + s.id);
+  }
+
+  // ---------------- Dinlerken işaretle ----------------
+  // Spotify bu şarkıyı çalarken dokunuşlar şarkının Spotify'daki saniyesine yazılır.
+  // Vuruş dokunuşlarından tempo ve vuruş ızgarası, "1"den dansın başı, break/vurgu dokunuşlarından harita işaretleri.
+  function dokunusIzgarasi(liste) {
+    const t = [...(liste || [])].sort((a, b) => a - b);
+    if (t.length < 8) return null;
+    const ar = [];
+    for (let i = 1; i < t.length; i++) { const d = t[i] - t[i - 1]; if (d > 0.18 && d < 1.6) ar.push(d); }
+    if (ar.length < 6) return null;
+    ar.sort((a, b) => a - b);
+    let p = ar[ar.length >> 1], a = t[0];
+    // dokunuşları ızgara sırasına yuvarlayıp doğru uydur (en küçük kareler), üç tur
+    for (let tur = 0; tur < 3; tur++) {
+      const k = t.map((x) => Math.round((x - a) / p));
+      const n = t.length;
+      let sk = 0, st = 0, skk = 0, skt = 0;
+      for (let i = 0; i < n; i++) { sk += k[i]; st += t[i]; skk += k[i] * k[i]; skt += k[i] * t[i]; }
+      const pay = n * skk - sk * sk;
+      if (!pay) break;
+      p = (n * skt - sk * st) / pay;
+      a = (st - p * sk) / n;
+    }
+    let hata = 0;
+    for (const x of t) { const r = x - (a + p * Math.round((x - a) / p)); hata += r * r; }
+    return { periyot: p, evre: a, bpm: 60 / p, sapma: Math.sqrt(hata / t.length) };
+  }
+  function isaretDurumu(s) {
+    const iz = dokunusIzgarasi(s.vurusDokunuslari);
+    const n = (s.vurusDokunuslari || []).length;
+    if (!n) return 'Henüz vuruş dokunuşu yok.';
+    if (!iz) return `${n} vuruş dokunuşu (en az 8 gerekli).`;
+    return `${n} vuruş dokunuşu · tempo ${sayi(iz.bpm)} BPM · sapma ±${Math.round(iz.sapma * 1000)} ms`;
+  }
+  function isaretDokun(tur) {
+    const s = aktifSarki();
+    if (!s) return;
+    if (!(SP.songId === s.id && SP.dur > 0 && !SP.durdu)) { toast('Önce Spotify\'da bu şarkıyı çal.'); return; }
+    const an = Math.round((spotifyZamani() - (s.spotifyKayma || 0)) * 1000) / 1000;
+    const durumYaz = (m) => { const el = $('#isaret-durum'); if (el) el.textContent = m; };
+    if (tur === 'vurus') {
+      s.vurusDokunuslari = s.vurusDokunuslari || [];
+      s.vurusDokunuslari.push(an);
+      s.updatedAt = Date.now(); kaydet();
+      durumYaz(isaretDurumu(s));
+      return;
+    }
+    if (tur === 'bir') {
+      const iz = dokunusIzgarasi(s.vurusDokunuslari);
+      if (s.beats && s.originIdx != null) {
+        // analiz vuruşları varsa en yakın vuruş dansın ilk 1'i olur
+        let en = 0; for (let i = 1; i < s.beats.length; i++) if (Math.abs(s.beats[i] - an) < Math.abs(s.beats[en] - an)) en = i;
+        s.originIdx = en; s.firstOneSec = s.beats[en];
+      } else s.firstOneSec = iz ? Math.round((iz.evre + iz.periyot * Math.round((an - iz.evre) / iz.periyot)) * 1000) / 1000 : an;
+      s.spotifyKayma = 0;
+      s.updatedAt = Date.now(); kaydet();
+      toast(`Dansın ilk 1'i: ${sureMetni(s.firstOneSec)} (${sayi(s.firstOneSec)} sn).`);
+      return;
+    }
+    if (!s.bpm) { toast('Önce tempo gerekli: vuruşlara dokunup "Bulunan tempoyu kullan"a bas.'); return; }
+    const b = Math.round(zamandanVurus(s, an));
+    if (b < 0) { toast('Bu an dansın ilk 1\'inden önce.'); return; }
+    const anahtar = tur === 'break' ? 'breaks' : 'accents';
+    s[anahtar] = [...new Set([...(s[anahtar] || []), b])].sort((x, y) => x - y);
+    s.haritaElle = true; s.updatedAt = Date.now(); kaydet();
+    const k = S.sayim(b);
+    toast(`${tur === 'break' ? 'Break' : 'Vurgu'}: ${k.blok + 1}. sekizlik, sayım ${k.etiket}.`);
   }
 
   // ---------------- olaylar ----------------
@@ -2742,6 +3038,29 @@ const SCS = (function () {
     },
     'sarki-duzen': (el) => { ui.sarkiDuzen = el.dataset.id; ciz(); },
     'sarki-duzen-bitti': () => { ui.sarkiDuzen = null; ciz(); toast('Kaydedildi.'); },
+    'spotify-baglan': () => { spotifyGiris().catch((e) => toast('Spotify girişi açılamadı: ' + e.message)); },
+    'spotify-kes': () => { if (!onayli('spotify-kes')) return; spotifyBaglantiyiKes(); ciz(); toast('Spotify bağlantısı kesildi.'); },
+    'giris-kodu-kopyala': () => { const i = $('#giris-kodu-goster'); kopyala(i && i.value, i); },
+    'calan-ekle': () => calaniEkle(),
+    'sp-cal': () => { const s = aktifSarki(); if (s && s.spotifyId) spotifyKomut('/me/player/play', 'PUT', { uris: ['spotify:track:' + s.spotifyId] }); },
+    'sp-durdur-devam': () => { const C = HS.calan; spotifyKomut(C && C.caliyor ? '/me/player/pause' : '/me/player/play', 'PUT'); },
+    'sp-sar': (el) => {
+      const C = HS.calan; if (!C) return;
+      const hedef = Math.max(0, Math.min(C.sure - 1, calanSimdi() + +el.dataset.d));
+      spotifyKomut('/me/player/seek?position_ms=' + Math.round(hedef * 1000), 'PUT');
+    },
+    'isaret-tempo': () => {
+      const s = aktifSarki(); const iz = dokunusIzgarasi(s.vurusDokunuslari);
+      if (!iz) { toast('En az 8 vuruş dokunuşu gerekli.'); return; }
+      kaynakEkle(s, 'dokunma', iz.bpm, `Spotify'la dinlerken, ${s.vurusDokunuslari.length} dokunuş`);
+      // dokunuş ızgarası düzgün tempo varsayar; eski analiz vuruşları bırakılır (analiz verisi saklı kalır)
+      s.beats = null; s.originIdx = null;
+      s.bpm = Math.round(iz.bpm * 10) / 10; s.bpmOlcum = s.bpm; s.bpmKaynak = 'dokunma';
+      if (s.firstOneSec != null) s.firstOneSec = Math.round((iz.evre + iz.periyot * Math.round((s.firstOneSec - iz.evre) / iz.periyot)) * 1000) / 1000;
+      s.updatedAt = Date.now(); kaydet(); ciz();
+      toast(`Tempo ${sayi(s.bpm)} BPM. Şimdi dansın ilk 1'inde "1"e dokun.`);
+    },
+    'isaret-sifirla': (el) => { if (!onayli('isaret-' + el.dataset.id)) return; const s = sarki(el.dataset.id); s.vurusDokunuslari = []; kaydet(); ciz(); },
     isaret: (el) => {
       const s = aktifSarki(); const b = +el.dataset.b;
       const acc = new Set(s.accents || []), brk = new Set(s.breaks || []);
@@ -2820,7 +3139,7 @@ const SCS = (function () {
     'sp-ilk1': () => {
       // şarkı seçili sekizliğin 1'ine geldiği an: Spotify zamanı ile koreografi sayımı eşlenir
       const s = aktifSarki();
-      if (!SP.ctrl || SP.songId !== s.id || SP.dur <= 0) { toast('Önce alttaki Spotify oynatıcısında şarkıyı çal.'); return; }
+      if (SP.songId !== s.id || SP.dur <= 0) { toast('Önce bu şarkıyı Spotify\'da çal.'); return; }
       const an = spotifyZamani();
       const blok = ui.prBas[s.id] ?? Math.floor(aktifKoreo(s).range[0] / 8);
       if (s.beats && s.originIdx != null) {
@@ -3112,6 +3431,17 @@ const SCS = (function () {
     }
     const ara = $('#hareket-ara');
     if (ara) ara.addEventListener('input', () => { ui.ara = ara.value; $('#hareket-liste').innerHTML = hareketListesi(); });
+    const gk = $('#giris-kodu');
+    if (gk) {
+      const bitir = () => {
+        const v = gk.value.trim(); if (!v) return;
+        // tam dönüş adresi yapıştırıldıysa içinden kodu al
+        let kod = v; try { const u = new URL(v); if (u.searchParams.get('code')) kod = u.searchParams.get('code'); } catch (e) { /* düz kod */ }
+        kodDegistir(kod).then(() => { toast('Spotify\'a bağlandı.'); ciz(); calanIzle(); }).catch((e) => toast('Bağlanamadı: ' + e.message));
+      };
+      gk.addEventListener('paste', () => setTimeout(bitir, 0));
+      gk.addEventListener('change', bitir);
+    }
   }
 
   document.addEventListener('click', (e) => {
@@ -3134,6 +3464,8 @@ const SCS = (function () {
     if (h) h(f, e);
   });
   document.addEventListener('pointerdown', (e) => {
+    const is = e.target.closest('[data-isaret]');
+    if (is) { e.preventDefault(); isaretDokun(is.dataset.isaret); return; }
     const el = e.target.closest('[data-tap]');
     if (!el) return;
     e.preventDefault();
@@ -3152,7 +3484,14 @@ const SCS = (function () {
   // başlat
   yukle();
   ui.rota = rotaOku();
+  if (SPOTIFY_VAR) hesapYukle();
   ciz();
+  if (SPOTIFY_VAR) {
+    girisDonusu().finally(() => calanIzle());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') calanIzle(); });
+    // şeritteki Spotify saati akıcı ilerlesin
+    setInterval(() => { const z = $('#sc-zaman'); const C = HS.calan; if (z && C) z.textContent = `${sureMetni(calanSimdi())} / ${sureMetni(C.sure)}`; }, 500);
+  }
   (async () => {
     try {
       if (window.claude && typeof window.claude.use === 'function') {
@@ -3170,7 +3509,7 @@ const SCS = (function () {
   }
 
   // deneme için dışa açık (sadece okuma amaçlı)
-  window.__scs = { DB: () => DB, S, spotifyOlay: (d) => spotifyOlay(d) };
+  window.__scs = { DB: () => DB, S, spotifyOlay: (d) => spotifyOlay(d), calanGuncelle: (d, r) => calanGuncelle(d, r || 0), HS, dokunusIzgarasi, isaretDokun, donusAdresi };
 })();
 </script>
 </body>
