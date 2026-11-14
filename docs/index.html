@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0E1118">
+<meta name="theme-color" content="#1A1310">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,44 +18,52 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Shrikhand&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 /* Düzen: tek sütun çalışma masası; üstte marka + gezinme, şarkı içinde alt sekmeler.
-   Sayım şeritleri (1–8) ve 32'lik cümle ızgarası sayfanın kendine özgü öğesi. */
+   Renk: swing dönemi retro tonları (kullanıcı isteği): krem kâğıt zemin üstünde hardal, kiremit,
+   şişe yeşili ve bordo; her ana sekme kendi renginde. Koyu temada aynı renklerin gece kulübü tonları. */
 :root {
-  --bg: #F3F4F8;
-  --surface: #FFFFFF;
-  --surface-2: #E9ECF3;
-  --line: #D6DAE5;
-  --fg: #151925;
-  --muted: #5A6174;
-  --brass: #94650F;
-  --brass-soft: #F4E7C7;
-  --teal: #136A74;
-  --teal-strong: #0E525A;
-  --teal-soft: #D4ECEF;
-  --warn: #A93E0B;
-  --warn-soft: #FBE4D7;
-  --ok: #2C7536;
-  --break: #6B4FA0;
-  --break-soft: #E7E0F5;
+  --bg: #F4EAD5;
+  --surface: #FFF9EC;
+  --surface-2: #ECDDBF;
+  --line: #D9C59E;
+  --fg: #2A1D17;
+  --muted: #6B5546;
+  /* retro renkler: dolgu, yumuşak zemin, zemin üstünde yazı, dolgu üstünde yazı */
+  --hardal: #E0A82E; --hardal-soft: #F6E6B8; --hardal-koyu: #7E5800; --hardal-uzeri: #2A1D17;
+  --kiremit: #C65A33; --kiremit-soft: #F5D9CB; --kiremit-koyu: #8E3618; --kiremit-uzeri: #FFF6E6;
+  --yesil: #3E7D52; --yesil-soft: #D5E8D9; --yesil-koyu: #285A38; --yesil-uzeri: #FFF6E6;
+  --bordo: #8C2335; --bordo-soft: #F0D3D8; --bordo-koyu: #6E1626; --bordo-uzeri: #FFF6E6;
+  /* görev renkleri retro renklere bağlı */
+  --brass: var(--hardal); --brass-soft: var(--hardal-soft); --brass-yazi: var(--hardal-koyu);
+  --teal: var(--yesil); --teal-strong: var(--yesil-koyu); --teal-soft: var(--yesil-soft);
+  --warn: var(--kiremit); --warn-soft: var(--kiremit-soft); --warn-yazi: var(--kiremit-koyu);
+  --ok: var(--yesil);
+  --break: var(--bordo); --break-soft: var(--bordo-soft);
   --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --font-retro: 'Shrikhand', 'Bricolage Grotesque', Georgia, serif;
   --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --r: 10px;
+  --sayfa: var(--hardal); --sayfa-koyu: var(--hardal-koyu);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E1118; --surface: #161A24; --surface-2: #1E2330; --line: #2B3141; --fg: #E7EAF1; --muted: #9AA1B4;
-    --brass: #E1AD4B; --brass-soft: #3A2F18; --teal: #5BBDC8; --teal-strong: #8AD3DB; --teal-soft: #13323A;
-    --warn: #F08A5B; --warn-soft: #3B2219; --ok: #72C47F; --break: #B49BE6; --break-soft: #2C2440;
+    --bg: #1A1310; --surface: #241A15; --surface-2: #31241D; --line: #46362B; --fg: #F3E6CF; --muted: #BBA287;
+    --hardal: #E8B53A; --hardal-soft: #3A2E14; --hardal-koyu: #F2CC6B; --hardal-uzeri: #1A1310;
+    --kiremit: #E07A4F; --kiremit-soft: #3E2419; --kiremit-koyu: #F2A07E; --kiremit-uzeri: #1A1310;
+    --yesil: #6FB07F; --yesil-soft: #1E3326; --yesil-koyu: #9AD4A8; --yesil-uzeri: #1A1310;
+    --bordo: #C9566A; --bordo-soft: #3B1C22; --bordo-koyu: #E58C9B; --bordo-uzeri: #1A1310;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0E1118; --surface: #161A24; --surface-2: #1E2330; --line: #2B3141; --fg: #E7EAF1; --muted: #9AA1B4;
-  --brass: #E1AD4B; --brass-soft: #3A2F18; --teal: #5BBDC8; --teal-strong: #8AD3DB; --teal-soft: #13323A;
-  --warn: #F08A5B; --warn-soft: #3B2219; --ok: #72C47F; --break: #B49BE6; --break-soft: #2C2440;
+  --bg: #1A1310; --surface: #241A15; --surface-2: #31241D; --line: #46362B; --fg: #F3E6CF; --muted: #BBA287;
+  --hardal: #E8B53A; --hardal-soft: #3A2E14; --hardal-koyu: #F2CC6B; --hardal-uzeri: #1A1310;
+  --kiremit: #E07A4F; --kiremit-soft: #3E2419; --kiremit-koyu: #F2A07E; --kiremit-uzeri: #1A1310;
+  --yesil: #6FB07F; --yesil-soft: #1E3326; --yesil-koyu: #9AD4A8; --yesil-uzeri: #1A1310;
+  --bordo: #C9566A; --bordo-soft: #3B1C22; --bordo-koyu: #E58C9B; --bordo-uzeri: #1A1310;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -113,12 +121,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .btn.tehlike.onay { background: var(--warn); color: var(--surface); border-color: var(--warn); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .cip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 500; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
-.cip.brass { background: var(--brass-soft); color: var(--brass); }
+.cip.brass { background: var(--brass-soft); color: var(--brass-yazi); }
 .cip.teal { background: var(--teal-soft); color: var(--teal); }
-.cip.uyari { background: var(--warn-soft); color: var(--warn); }
+.cip.uyari { background: var(--warn-soft); color: var(--warn-yazi); }
 .cip.break { background: var(--break-soft); color: var(--break); }
 .not { border-radius: 8px; padding: 10px 12px; background: var(--surface-2); font-size: 0.88rem; max-width: 75ch; }
-.not.uyari { background: var(--warn-soft); color: var(--warn); }
+.not.uyari { background: var(--warn-soft); color: var(--warn-yazi); }
 .not.bilgi { background: var(--teal-soft); color: var(--fg); }
 .bos-durum { text-align: center; padding: 28px 16px; color: var(--muted); }
 
@@ -153,7 +161,7 @@ table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
 th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
 td.sayi { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.dokun { font: inherit; font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; width: 100%; min-height: 110px; border-radius: var(--r); border: 2px dashed var(--brass); background: var(--brass-soft); color: var(--brass); cursor: pointer; touch-action: manipulation; user-select: none; }
+.dokun { font: inherit; font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; width: 100%; min-height: 110px; border-radius: var(--r); border: 2px dashed var(--brass); background: var(--brass-soft); color: var(--brass-yazi); cursor: pointer; touch-action: manipulation; user-select: none; }
 .dokun:active { transform: scale(0.99); }
 .ilerleme { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
 .ilerleme i { display: block; height: 100%; background: var(--teal); width: 0; transition: width .2s; }
@@ -173,7 +181,7 @@ td.sayi { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .enerji i.dolu { background: var(--brass); }
 .sayimlar { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
 .sayimlar button { font: inherit; font-family: var(--font-mono); font-size: 0.72rem; padding: 6px 0; border: 0; border-radius: 4px; background: var(--surface-2); color: var(--muted); cursor: pointer; min-width: 0; }
-.sayimlar button.v { background: var(--brass); color: var(--surface); font-weight: 700; }
+.sayimlar button.v { background: var(--brass); color: var(--hardal-uzeri); font-weight: 700; }
 .sayimlar button.b { background: var(--break); color: var(--surface); font-weight: 700; }
 .lejant { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); align-items: center; }
 .lejant i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
@@ -181,7 +189,7 @@ td.sayi { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 /* koreografi */
 .koreo-ozet { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .koreo-cumle { display: grid; gap: 10px; }
-.koreo-cumle > h3 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brass); padding-top: 6px; }
+.koreo-cumle > h3 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brass-yazi); padding-top: 6px; }
 .sekizlik { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
 .sekizlik-bas { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-2); flex-wrap: wrap; font-size: 0.85rem; }
 .sekizlik-bas b { font-family: var(--font-display); font-size: 0.95rem; }
@@ -195,15 +203,15 @@ td.sayi { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .oge-ad { font-weight: 600; min-width: 0; }
 .oge-ad small { display: block; font-weight: 400; color: var(--muted); font-size: 0.8rem; }
 .oge.devam .oge-ad, .oge.devam .oge-sayim { color: var(--muted); font-weight: 500; }
-.oge.bosluk .oge-ad { color: var(--warn); }
+.oge.bosluk .oge-ad { color: var(--warn-yazi); }
 .oge-isaret { display: flex; gap: 4px; align-items: center; }
 .oge-arac { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 10px 98px; }
 @media (max-width: 560px) { .oge-arac { padding-left: 12px; } .oge-ana { grid-template-columns: 60px minmax(0, 1fr) auto; } }
 .oge-arac select { width: auto; max-width: 100%; }
 .uyarilar { padding: 0 12px 10px 98px; display: grid; gap: 4px; }
 @media (max-width: 560px) { .uyarilar { padding-left: 12px; } }
-.uyarilar p { font-size: 0.8rem; color: var(--warn); }
-.kilit { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; color: var(--brass); text-transform: uppercase; }
+.uyarilar p { font-size: 0.8rem; color: var(--warn-yazi); }
+.kilit { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; color: var(--brass-yazi); text-transform: uppercase; }
 
 /* prova */
 .prova { display: grid; gap: 16px; }
@@ -213,7 +221,7 @@ td.sayi { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .sahne .konum { font-size: 0.9rem; color: var(--muted); }
 .sayac { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: clamp(4px, 1.2vw, 10px); }
 .sayac span { font-family: var(--font-mono); font-weight: 700; font-size: clamp(1.1rem, 5vw, 2rem); padding: clamp(8px, 2vw, 16px) 0; border-radius: 10px; background: var(--surface-2); color: var(--muted); transition: background .06s, color .06s, transform .06s; }
-.sayac span.aktif { background: var(--brass); color: var(--surface); transform: scale(1.06); }
+.sayac span.aktif { background: var(--brass); color: var(--hardal-uzeri); transform: scale(1.06); }
 .sayac span.hareket-ici { box-shadow: inset 0 -3px 0 var(--teal); }
 .sahne .sonraki { font-size: 0.95rem; color: var(--muted); }
 .sahne .sonraki b { color: var(--fg); }
@@ -253,6 +261,37 @@ details.panel > summary { cursor: pointer; list-style-position: inside; }
 .hazir-kisa { padding: 6px 0; border-top: 1px solid var(--line); }
 .hazir-kisa:first-child { border-top: 0; }
 @media (max-width: 480px) { .gezinme { gap: 0; width: 100%; justify-content: space-between; flex-wrap: nowrap; } .gezinme a { padding: 6px 8px; font-size: 0.84rem; } }
+
+/* ---- Retro görünüm: sekmeler kendi renginde, başlık altında dört renkli şerit ---- */
+.ust { border-bottom: 0; }
+.ust::after { content: ""; display: block; height: 6px; border-radius: 3px; margin-bottom: 2px;
+  background: linear-gradient(90deg, var(--hardal) 0 25%, var(--kiremit) 25% 50%, var(--yesil) 50% 75%, var(--bordo) 75% 100%); }
+.marka b { font-family: var(--font-retro); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.01em; color: var(--bordo-koyu); }
+.marka span { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.1em; }
+.marka span i { font-style: normal; }
+.marka span i:nth-child(1) { color: var(--hardal-koyu); }
+.marka span i:nth-child(2) { color: var(--kiremit-koyu); }
+.marka span i:nth-child(3) { color: var(--yesil-koyu); }
+.marka span i:nth-child(4) { color: var(--bordo-koyu); }
+[data-renk="hardal"] { --r: var(--hardal); --r-soft: var(--hardal-soft); --r-koyu: var(--hardal-koyu); --r-uzeri: var(--hardal-uzeri); }
+[data-renk="kiremit"] { --r: var(--kiremit); --r-soft: var(--kiremit-soft); --r-koyu: var(--kiremit-koyu); --r-uzeri: var(--kiremit-uzeri); }
+[data-renk="yesil"] { --r: var(--yesil); --r-soft: var(--yesil-soft); --r-koyu: var(--yesil-koyu); --r-uzeri: var(--yesil-uzeri); }
+[data-renk="bordo"] { --r: var(--bordo); --r-soft: var(--bordo-soft); --r-koyu: var(--bordo-koyu); --r-uzeri: var(--bordo-uzeri); }
+.gezinme a { font-weight: 600; color: var(--r-koyu); background: var(--r-soft); }
+.gezinme a[aria-current="page"] { background: var(--r); color: var(--r-uzeri); box-shadow: 0 2px 0 var(--r-koyu); }
+.sekmeler { gap: 4px; }
+.sekmeler button { border-radius: 8px 8px 0 0; border-bottom-width: 3px; }
+.sekmeler button:hover { color: var(--r-koyu); }
+.sekmeler button[aria-selected="true"] { color: var(--r-koyu); background: var(--r-soft); border-bottom-color: var(--r); }
+.btn.tehlike { color: var(--warn-yazi); }
+/* sayfanın rengi: başlıklar o sekmenin renginde */
+body[data-sayfa="koreografiler"] { --sayfa: var(--kiremit); --sayfa-koyu: var(--kiremit-koyu); }
+body[data-sayfa="hareketler"] { --sayfa: var(--yesil); --sayfa-koyu: var(--yesil-koyu); }
+body[data-sayfa="yedek"] { --sayfa: var(--bordo); --sayfa-koyu: var(--bordo-koyu); }
+main h2 { color: var(--sayfa-koyu); }
+.sahne { border-top: 5px solid var(--bordo); }
+.sayac span:nth-child(odd) { background: var(--surface-2); }
+.yorum[aria-pressed="true"] { border-color: var(--brass); background: var(--brass-soft); }
 </style>
 <div id="uygulama"></div>
 <script>
@@ -1802,14 +1841,16 @@ const SCS = (function () {
     else if (r.gorunum === 'yedek') govde = vYedek();
     else govde = vSarkilar();
     const aktif = (g) => (r.gorunum === g || (g === 'sarkilar' && r.gorunum === 'sarki') ? ' aria-current="page"' : '');
+    // sayfanın rengi (başlıklar o sekmenin renginde): şarkı sayfası Şarkılar'ın rengini alır
+    document.body.dataset.sayfa = r.gorunum === 'sarki' ? 'sarkilar' : r.gorunum;
     $('#uygulama').innerHTML = `
       <header class="ust"><div class="kap ust-ic">
-        <a class="marka" href="#sarkilar" data-act="git" data-h="sarkilar"><b>Swing Choreo Studio</b><span>5 6 7 8</span></a>
+        <a class="marka" href="#sarkilar" data-act="git" data-h="sarkilar"><b>Swing Choreo Studio</b><span><i>5</i> <i>6</i> <i>7</i> <i>8</i></span></a>
         <nav class="gezinme" aria-label="Bölümler">
-          <a href="#sarkilar" data-act="git" data-h="sarkilar"${aktif('sarkilar')}>Şarkılar</a>
-          <a href="#koreografiler" data-act="git" data-h="koreografiler"${aktif('koreografiler')}>Koreografiler</a>
-          <a href="#hareketler" data-act="git" data-h="hareketler"${aktif('hareketler')}>Hareketler</a>
-          <a href="#yedek" data-act="git" data-h="yedek"${aktif('yedek')}>Yedek</a>
+          <a href="#sarkilar" data-act="git" data-h="sarkilar" data-renk="hardal"${aktif('sarkilar')}>Şarkılar</a>
+          <a href="#koreografiler" data-act="git" data-h="koreografiler" data-renk="kiremit"${aktif('koreografiler')}>Koreografiler</a>
+          <a href="#hareketler" data-act="git" data-h="hareketler" data-renk="yesil"${aktif('hareketler')}>Hareketler</a>
+          <a href="#yedek" data-act="git" data-h="yedek" data-renk="bordo"${aktif('yedek')}>Yedek</a>
         </nav>
       </div></header>
       <main class="kap">${kayitOk ? '' : '<p class="not uyari" style="margin-bottom:16px">Bu tarayıcı verileri kaydetmiyor (gizli pencere ya da engellenmiş depolama). Yaptıkların sayfa kapanınca kaybolur; Yedek bölümünden JSON olarak al.</p>'}${govde}</main>`;
@@ -1903,7 +1944,7 @@ const SCS = (function () {
     const sek = ui.sekme[s.id] || 'tempo';
     const top = S.toplamVurus(s);
     const ara = encodeURIComponent(`${s.title} ${s.artist || ''}`.trim());
-    const sekmeler = [['tempo', 'Tempo'], ['harita', 'Müzik haritası'], ['koreo', 'Koreografi'], ['prova', 'Prova']];
+    const sekmeler = [['tempo', 'Tempo', 'hardal'], ['harita', 'Müzik haritası', 'yesil'], ['koreo', 'Koreografi', 'kiremit'], ['prova', 'Prova', 'bordo']];
     let icerik = '';
     if (sek === 'tempo') icerik = vTempo(s);
     else if (sek === 'harita') icerik = vHarita(s);
@@ -1924,7 +1965,7 @@ const SCS = (function () {
           <a href="https://www.google.com/search?q=${encodeURIComponent(`"${s.title}" ${s.artist || ''} BPM`)}" target="_blank" rel="noopener">Web'de BPM ara</a>
         </div>
       </div>
-      <div class="sekmeler" role="tablist">${sekmeler.map(([k, ad]) => `<button role="tab" aria-selected="${sek === k}" data-act="sekme" data-k="${k}">${ad}</button>`).join('')}</div>
+      <div class="sekmeler" role="tablist">${sekmeler.map(([k, ad, renk]) => `<button role="tab" aria-selected="${sek === k}" data-act="sekme" data-k="${k}" data-renk="${renk}">${ad}</button>`).join('')}</div>
       ${icerik}`;
   }
 

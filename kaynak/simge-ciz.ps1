@@ -1,4 +1,4 @@
-# Uygulama simgesini çizer: koyu zemin üstünde 5 6 7 8 sayım kareleri, "8" pirinç renginde.
+# Uygulama simgesini çizer: koyu kahve zemin üstünde 5 6 7 8 sayım kareleri, retro renklerde (hardal, kiremit, yeşil, bordo).
 # Kullanım (PowerShell): .\kaynak\simge-ciz.ps1   -> docs\simgeler\simge-180/192/512.png
 Add-Type -AssemblyName System.Drawing
 $hedef = Join-Path (Split-Path $PSScriptRoot -Parent) 'docs\simgeler'
@@ -23,7 +23,7 @@ foreach ($boyut in 180, 192, 512) {
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = 'AntiAlias'
   $g.TextRenderingHint = 'AntiAliasGridFit'
-  $g.Clear((Renk '#0E1118'))
+  $g.Clear((Renk '#1A1310'))
   # maskeli simgeler için içerik ortadaki %66'lık alanda
   $alan = $boyut * 0.66
   $bosluk = $alan * 0.08
@@ -38,9 +38,9 @@ foreach ($boyut in 180, 192, 512) {
     $x = $x0 + ($i % 2) * ($kare + $bosluk)
     $y = $y0 + [math]::Floor($i / 2) * ($kare + $bosluk)
     $son = ($i -eq 3)
-    $zemin = New-Object System.Drawing.SolidBrush (Renk ($(if ($son) { '#E1AD4B' } else { '#1E2330' })))
+    $zemin = New-Object System.Drawing.SolidBrush (Renk (@('#E0A82E', '#C65A33', '#3E7D52', '#8C2335')[$i]))
     Yuvarlak $g $zemin $x $y $kare $kare ($kare * 0.18)
-    $kalem = New-Object System.Drawing.SolidBrush (Renk ($(if ($son) { '#0E1118' } else { '#9AA1B4' })))
+    $kalem = New-Object System.Drawing.SolidBrush (Renk (@('#2A1D17', '#FFF6E6', '#FFF6E6', '#FFF6E6')[$i]))
     $g.DrawString($sayilar[$i], $yazi, $kalem, (New-Object System.Drawing.RectangleF($x, ($y + $kare * 0.02), $kare, $kare)), $bicim)
     $zemin.Dispose(); $kalem.Dispose()
   }

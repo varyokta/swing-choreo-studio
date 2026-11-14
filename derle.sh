@@ -19,7 +19,7 @@ govde > claude-sayfasi/swing-choreo-studio.html
 {
   printf '<!doctype html>\n<html lang="tr">\n<head>\n<meta charset="utf-8">\n'
   printf '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
-  printf '<meta name="theme-color" content="#0E1118">\n'
+  printf '<meta name="theme-color" content="#1A1310">\n'
   printf '<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n'
   printf '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
   printf '<meta name="apple-mobile-web-app-title" content="Choreo Studio">\n'

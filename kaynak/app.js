@@ -217,14 +217,16 @@
     else if (r.gorunum === 'yedek') govde = vYedek();
     else govde = vSarkilar();
     const aktif = (g) => (r.gorunum === g || (g === 'sarkilar' && r.gorunum === 'sarki') ? ' aria-current="page"' : '');
+    // sayfanın rengi (başlıklar o sekmenin renginde): şarkı sayfası Şarkılar'ın rengini alır
+    document.body.dataset.sayfa = r.gorunum === 'sarki' ? 'sarkilar' : r.gorunum;
     $('#uygulama').innerHTML = `
       <header class="ust"><div class="kap ust-ic">
-        <a class="marka" href="#sarkilar" data-act="git" data-h="sarkilar"><b>Swing Choreo Studio</b><span>5 6 7 8</span></a>
+        <a class="marka" href="#sarkilar" data-act="git" data-h="sarkilar"><b>Swing Choreo Studio</b><span><i>5</i> <i>6</i> <i>7</i> <i>8</i></span></a>
         <nav class="gezinme" aria-label="Bölümler">
-          <a href="#sarkilar" data-act="git" data-h="sarkilar"${aktif('sarkilar')}>Şarkılar</a>
-          <a href="#koreografiler" data-act="git" data-h="koreografiler"${aktif('koreografiler')}>Koreografiler</a>
-          <a href="#hareketler" data-act="git" data-h="hareketler"${aktif('hareketler')}>Hareketler</a>
-          <a href="#yedek" data-act="git" data-h="yedek"${aktif('yedek')}>Yedek</a>
+          <a href="#sarkilar" data-act="git" data-h="sarkilar" data-renk="hardal"${aktif('sarkilar')}>Şarkılar</a>
+          <a href="#koreografiler" data-act="git" data-h="koreografiler" data-renk="kiremit"${aktif('koreografiler')}>Koreografiler</a>
+          <a href="#hareketler" data-act="git" data-h="hareketler" data-renk="yesil"${aktif('hareketler')}>Hareketler</a>
+          <a href="#yedek" data-act="git" data-h="yedek" data-renk="bordo"${aktif('yedek')}>Yedek</a>
         </nav>
       </div></header>
       <main class="kap">${kayitOk ? '' : '<p class="not uyari" style="margin-bottom:16px">Bu tarayıcı verileri kaydetmiyor (gizli pencere ya da engellenmiş depolama). Yaptıkların sayfa kapanınca kaybolur; Yedek bölümünden JSON olarak al.</p>'}${govde}</main>`;
@@ -318,7 +320,7 @@
     const sek = ui.sekme[s.id] || 'tempo';
     const top = S.toplamVurus(s);
     const ara = encodeURIComponent(`${s.title} ${s.artist || ''}`.trim());
-    const sekmeler = [['tempo', 'Tempo'], ['harita', 'Müzik haritası'], ['koreo', 'Koreografi'], ['prova', 'Prova']];
+    const sekmeler = [['tempo', 'Tempo', 'hardal'], ['harita', 'Müzik haritası', 'yesil'], ['koreo', 'Koreografi', 'kiremit'], ['prova', 'Prova', 'bordo']];
     let icerik = '';
     if (sek === 'tempo') icerik = vTempo(s);
     else if (sek === 'harita') icerik = vHarita(s);
@@ -339,7 +341,7 @@
           <a href="https://www.google.com/search?q=${encodeURIComponent(`"${s.title}" ${s.artist || ''} BPM`)}" target="_blank" rel="noopener">Web'de BPM ara</a>
         </div>
       </div>
-      <div class="sekmeler" role="tablist">${sekmeler.map(([k, ad]) => `<button role="tab" aria-selected="${sek === k}" data-act="sekme" data-k="${k}">${ad}</button>`).join('')}</div>
+      <div class="sekmeler" role="tablist">${sekmeler.map(([k, ad, renk]) => `<button role="tab" aria-selected="${sek === k}" data-act="sekme" data-k="${k}" data-renk="${renk}">${ad}</button>`).join('')}</div>
       ${icerik}`;
   }
 
