@@ -764,7 +764,9 @@
   }
   function hareketListesi() {
     const q = ui.ara.toLocaleLowerCase('tr').trim();
-    const l = DB.moves.filter((m) => !q || [m.name, m.character, m.travel, m.desc].join(' ').toLocaleLowerCase('tr').includes(q));
+    // alfabetik (Türkçe sıralama, büyük/küçük harf ayrımı yok); yeni eklenen hareket de yerine oturur
+    const l = DB.moves.filter((m) => !q || [m.name, m.character, m.travel, m.desc].join(' ').toLocaleLowerCase('tr').includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
     if (!l.length) return '<div class="panel bos-durum">Aramaya uyan hareket yok.</div>';
     return l.map((m) => {
       const kullanim = DB.choreos.filter((c) => c.items.some((x) => x.moveId === m.id)).length;
