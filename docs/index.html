@@ -292,6 +292,10 @@ main h2 { color: var(--sayfa-koyu); }
 .sahne { border-top: 5px solid var(--bordo); }
 .sayac span:nth-child(odd) { background: var(--surface-2); }
 .yorum[aria-pressed="true"] { border-color: var(--brass); background: var(--brass-soft); }
+/* Hareketler: Aktif / Aktif olmayanlar */
+.hareket-sekmeler { display: flex; gap: 4px; flex-wrap: wrap; }
+.hareket-sekmeler button { font: inherit; font-weight: 600; font-size: 0.88rem; border: 0; border-radius: 999px; padding: 7px 12px; cursor: pointer; background: var(--r-soft); color: var(--r-koyu); }
+.hareket-sekmeler button[aria-selected="true"] { background: var(--r); color: var(--r-uzeri); box-shadow: 0 2px 0 var(--r-koyu); }
 </style>
 <div id="uygulama"></div>
 <script>
@@ -1850,10 +1854,10 @@ const SCS = (function () {
           <a href="#sarkilar" data-act="git" data-h="sarkilar" data-renk="hardal"${aktif('sarkilar')}>Şarkılar</a>
           <a href="#koreografiler" data-act="git" data-h="koreografiler" data-renk="kiremit"${aktif('koreografiler')}>Koreografiler</a>
           <a href="#hareketler" data-act="git" data-h="hareketler" data-renk="yesil"${aktif('hareketler')}>Hareketler</a>
-          <a href="#yedek" data-act="git" data-h="yedek" data-renk="bordo"${aktif('yedek')}>Yedek</a>
+          <a href="#yedek" data-act="git" data-h="yedek" data-renk="bordo"${aktif('yedek')}>Ayarlar</a>
         </nav>
       </div></header>
-      <main class="kap">${kayitOk ? '' : '<p class="not uyari" style="margin-bottom:16px">Bu tarayıcı verileri kaydetmiyor (gizli pencere ya da engellenmiş depolama). Yaptıkların sayfa kapanınca kaybolur; Yedek bölümünden JSON olarak al.</p>'}${govde}</main>`;
+      <main class="kap">${kayitOk ? '' : '<p class="not uyari" style="margin-bottom:16px">Bu tarayıcı verileri kaydetmiyor (gizli pencere ya da engellenmiş depolama). Yaptıkların sayfa kapanınca kaybolur; Ayarlar sekmesindeki Yedek bölümünden JSON olarak al.</p>'}${govde}</main>`;
     sonraCiz();
   }
 
@@ -2373,27 +2377,42 @@ const SCS = (function () {
   // ---- Hareketler ----
   function vHareketler() {
     if (ui.hareketDuzen) return vHareketForm(ui.hareketDuzen === 'yeni' ? null : hareket(ui.hareketDuzen));
+    const pasifSay = DB.moves.filter(pasifMi).length;
+    const sek = ui.hareketSekme === 'pasif' ? 'pasif' : 'aktif';
     return `<div class="yigin">
       <section class="panel">
-        <div class="satir ara"><h2>Hareket kütüphanesi</h2><button class="btn ana" data-act="hareket-yeni">Yeni hareket</button></div>
-        <p class="ipucu">Varsayılan sayımlar başlangıç önerisidir; kendi saydığın gibi düzelt. Başlangıç sayımı hareketin sekizlik içinde nereden girdiği: 8'de başlayan hareket 8 → 1…7 gider. Arkasından ya yine 8'de başlayan ya da 8'de hazırlıkla giren 1'lik bir hareket gelir; 1'likten 8'liğe geçişte önceki hareket 8'ini bırakır (kartta işaretli olmalı) ya da araya duruş girer. 4 sayımlık hareketler 4 sayım sonra da (1 yerine 5'te) başlayabilir. Ağırlık bilgisini girdiğin hareketlerde koreografi uymayan geçişi seçmez.</p>
-        <p class="kucuk"><b id="kullanim-sayisi">${kullanimMetni()}</b> Koreografiyi bölen ya da istemediğin hareketlerde "Otomatik koreografide kullan" işaretini kaldır: hareket silinmez, sadece otomatik koreografiye girmez.</p>
+        <h2>Hareket kütüphanesi</h2>
+        <div class="satir">
+          <button class="btn ana" data-act="hareket-yeni">Yeni hareket</button>
+          <div class="hareket-sekmeler" role="tablist">
+            <button role="tab" data-act="hareket-sekme" data-k="aktif" data-renk="yesil" aria-selected="${sek === 'aktif'}">Aktif (${DB.moves.length - pasifSay})</button>
+            <button role="tab" data-act="hareket-sekme" data-k="pasif" data-renk="bordo" aria-selected="${sek === 'pasif'}">Aktif olmayanlar (${pasifSay})</button>
+          </div>
+        </div>
+        ${sek === 'pasif' ? '<p class="ipucu">"Otomatik koreografide kullan" işareti kaldırılmış hareketler burada durur: silinmez, otomatik koreografiye girmez, koreografide "Değiştir" ile elle eklenebilir. İşareti yeniden koyunca Aktif listesine döner.</p>' : ''}
+        <details><summary class="kucuk"><b>Sayım kuralları</b> (8'de başlama, 8'i bırakma, vurgu sayımı)</summary><p class="ipucu" style="margin-top:8px">Varsayılan sayımlar başlangıç önerisidir; kendi saydığın gibi düzelt. Başlangıç sayımı hareketin sekizlik içinde nereden girdiği: 8'de başlayan hareket 8 → 1…7 gider. Arkasından ya yine 8'de başlayan ya da 8'de hazırlıkla giren 1'lik bir hareket gelir; 1'likten 8'liğe geçişte önceki hareket 8'ini bırakır (kartta işaretli olmalı) ya da araya duruş girer. 4 sayımlık hareketler 4 sayım sonra da (1 yerine 5'te) başlayabilir. Ağırlık bilgisini girdiğin hareketlerde koreografi uymayan geçişi seçmez. "Vurgu" kutusuna hareketin vurduğu sayımları yazarsan koreografi o vurguyu müzikteki darbeye denk getirir.</p></details>
+        ${sek === 'aktif' ? '<p class="kucuk soluk">Koreografiyi bölen ya da istemediğin hareketlerde "Otomatik koreografide kullan" işaretini kaldır: hareket silinmez, "Aktif olmayanlar"a taşınır.</p>' : ''}
         <input id="hareket-ara" placeholder="Ara: ad, karakter, yön…" value="${esc(ui.ara)}" aria-label="Hareket ara">
       </section>
       <div class="liste" id="hareket-liste">${hareketListesi()}</div>
       <div><button class="btn kucuk" data-act="varsayilan-geri">Eksik varsayılan hareketleri geri ekle</button></div>
     </div>`;
   }
-  function kullanimMetni() {
-    const l = DB.moves.filter((m) => m.kind !== 'poz');
-    return `Otomatik koreografide: ${l.filter((m) => m.kullan !== false).length} / ${l.length} hareket.`;
-  }
+  // otomatik koreografide kullanılmayan (aktif olmayan) hareket; duruşlar hep aktif listede
+  const pasifMi = (m) => m.kullan === false && m.kind !== 'poz';
   function hareketListesi() {
     const q = ui.ara.toLocaleLowerCase('tr').trim();
+    const pasifSekme = ui.hareketSekme === 'pasif';
     // alfabetik (Türkçe sıralama, büyük/küçük harf ayrımı yok); yeni eklenen hareket de yerine oturur
-    const l = DB.moves.filter((m) => !q || [m.name, m.character, m.travel, m.desc].join(' ').toLocaleLowerCase('tr').includes(q))
+    const l = DB.moves.filter((m) => pasifMi(m) === pasifSekme)
+      .filter((m) => !q || [m.name, m.character, m.travel, m.desc].join(' ').toLocaleLowerCase('tr').includes(q))
       .sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
-    if (!l.length) return '<div class="panel bos-durum">Aramaya uyan hareket yok.</div>';
+    if (!l.length) {
+      if (q) return '<div class="panel bos-durum">Aramaya uyan hareket yok.</div>';
+      return pasifSekme
+        ? '<div class="panel bos-durum">Aktif olmayan hareket yok. Bir hareketin "Otomatik koreografide kullan" işaretini kaldırınca buraya taşınır.</div>'
+        : '<div class="panel bos-durum">Aktif hareket yok.</div>';
+    }
     return l.map((m) => {
       const kullanim = DB.choreos.filter((c) => c.items.some((x) => x.moveId === m.id)).length;
       const uz = m.lengthOptions && m.lengthOptions.length ? m.lengthOptions.map(sayi).join(' / ') : sayi(m.length);
@@ -3456,6 +3475,7 @@ const SCS = (function () {
     'pr-kay': (el) => { T.kayma += +el.dataset.d; },
     'pr-tempo': (el) => { T.bpmFark += +el.dataset.d; const s = aktifSarki(); const e = $('#pr-bpm'); if (e) e.textContent = sayi((s.bpm || 120) + T.bpmFark) + ' BPM'; },
     'hareket-yeni': () => { ui.hareketDuzen = 'yeni'; ciz(); window.scrollTo(0, 0); },
+    'hareket-sekme': (el) => { ui.hareketSekme = el.dataset.k; ciz(); },
     'hareket-duzen': (el) => { ui.hareketDuzen = el.dataset.id; ciz(); window.scrollTo(0, 0); },
     'hareket-vazgec': () => {
       ui.hareketDuzen = null;
@@ -3582,9 +3602,8 @@ const SCS = (function () {
       const m = hareket(el.dataset.id); if (!m) return;
       m.kullan = el.checked;
       kaydet();
-      $('#hareket-liste').innerHTML = hareketListesi();
-      const say = $('#kullanim-sayisi'); if (say) say.textContent = kullanimMetni();
-      toast(m.kullan ? `${m.name} otomatik koreografide kullanılacak.` : `${m.name} otomatik koreografide kullanılmayacak (kütüphanede duruyor). Var olan koreografilerde değişmez; yeniden oluşturunca çıkar.`);
+      ciz(); // hareket öbür sekmeye geçer, sekmelerdeki sayılar da güncellenir
+      toast(m.kullan ? `${m.name} Aktif listesine taşındı; otomatik koreografide kullanılacak.` : `${m.name} "Aktif olmayanlar"a taşındı: kütüphanede duruyor, otomatik koreografiye girmez. Var olan koreografilerde değişmez; yeniden oluşturunca çıkar.`);
     },
     'hizli-sayim': (el) => {
       const m = hareket(el.dataset.id); if (!m) return;

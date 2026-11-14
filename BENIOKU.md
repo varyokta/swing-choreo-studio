@@ -34,4 +34,4 @@ Bu komut `docs/index.html`'i yeniden kurar ve çevrimdışı önbelleğin sürü
 2. Paylaş düğmesi → **Ana Ekrana Ekle** → Ekle.
 3. Ana ekrandaki "Choreo Studio" simgesinden aç: tam ekran açılır, internetsiz de çalışır.
 
-claude.ai sürümündeki verileri taşımak için: claude.ai'deki sayfada **Yedek → Yedeği indir**, telefondaki uygulamada **Yedek → Geri yükle**.
+claude.ai sürümündeki verileri taşımak için: claude.ai'deki sayfada **Ayarlar → Yedeği indir**, telefondaki uygulamada **Ayarlar → Geri yükle**.
